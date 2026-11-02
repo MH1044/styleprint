@@ -89,3 +89,21 @@ the same paragraph. Credential resolution follows the required order: own
 key (from the credential file) beats `PUBLIK_API_KEY` beats the per-install
 credential file beats nothing, which throws `NoCredentialsError`. Gate
 passed.
+
+## Step 6 — embeddings and retrieval
+
+Command: `npm run test:embeddings`
+
+```
+ RUN  v5.1.0 <repo>/server
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  23:42:52
+   Duration  339ms (import 61%, transform 34%, tests 4%, worker 2%)
+```
+
+In mock mode (TF-IDF fallback path), a fixture paragraph used as its own
+query comes back first with score 1.0; a topically related paragraph outranks
+unrelated ones; TF-IDF vectors share one vocabulary and are deterministic for
+identical text. Gate passed.
