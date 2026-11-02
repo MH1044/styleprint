@@ -45,3 +45,25 @@ build plan needed a concrete choice.
     says mock mode should fall back to local TF-IDF for embeddings, and that fallback
     needs corpus-wide context the generic AI client doesn't have — so the client
     throws and the embeddings module (step 6) catches it and switches to TF-IDF.
+14. **Headings are stripped before the per-paragraph rewrite loop**, not fed through
+    pass 1/2. Stage 5 says the pipeline only rewrites text runs inside a block, never
+    the block type, and a Markdown `#` heading is structural, not prose to humanise.
+15. **Mock mode's rewrite does more than the literal spec sentence** (shuffle +
+    contract + tail). It also strips a fixed list of stock AI filler openers
+    ("Moreover,", "In today's fast-paced world,", ...) and splits sentences over 26
+    words at a conjunction. A pure shuffle never changes a paragraph's sentence-length
+    mean/std, so the build-order gate 7 requirement ("raises the voice-match score")
+    could not pass under the literal minimal description — these two extra,
+    deterministic, offline steps are what a real de-AI pass would also do.
+16. **`voiceMatchScore` is a weighted average of four group cosine similarities**
+    (sentence/paragraph rhythm 0.4, punctuation+contractions 0.25, vocabulary/hedging
+    0.15, function-word profile 0.2), not one flat cosine over the full concatenated
+    vector. The 150-wide function-word block otherwise dominates the flat cosine by
+    sheer dimension count, so a real rewrite that measurably changes rhythm and
+    contractions barely moves the score. `styleVector`/`cosineSimilarity` stay
+    exported as-is for anything that wants the flat comparison.
+17. **The post-check's "one `publik-fast` call" is a per-paragraph semantic check**
+    (`runFastTagCheck`) run after the local checks, on the accepted pass-2 output.
+    Its failure is folded into the same single retry as the local checks, rather than
+    triggering a separate retry budget, matching "re-run once... or marked needs
+    review" read as one combined check-and-retry step, not two independent ones.
