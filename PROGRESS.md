@@ -49,3 +49,23 @@ boilerplate stripping removes signatures, quoted replies, page numbers and
 bare URLs without eating real content; the sentence splitter survives common
 abbreviations; near-duplicate paragraphs are dropped; uniform list-heavy text
 is flagged as AI-like and bursty human prose is not. Gate passed.
+
+## Step 4 — fingerprint
+
+Command: `npm run test:fingerprint`
+
+```
+ RUN  v5.1.0 <repo>/server
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  23:36:50
+   Duration  230ms (transform 57%, tests 27%, import 13%, worker 3%)
+```
+
+`computeStyleProfile` produces the full feature table (sentence/paragraph
+length, function-word frequency, punctuation habits, openers, contractions,
+vocabulary, hedging, quirks) plus derived targets for every corpus fixture;
+cosine similarity of a text's feature vector against itself is exactly 1.0,
+and the voice-match score between two different human voices lands strictly
+between 0 and 100. Gate passed.
