@@ -56,7 +56,9 @@ export function normaliseWhitespace(text: string): string {
   const unified = text.normalize("NFC").replace(/\r\n|\r/g, "\n");
   const trimmedLines = unified
     .split("\n")
-    .map((line) => line.replace(/[ \t]+$/g, "").replace(/[ \t]{2,}/g, " "));
+    // Collapse only runs of 3+ spaces/tabs (extraction artefacts); an exact
+    // double space is a quirk the fingerprint measures, not noise to erase.
+    .map((line) => line.replace(/[ \t]+$/g, "").replace(/[ \t]{3,}/g, " "));
   const collapsed = trimmedLines.join("\n").replace(/\n{3,}/g, "\n\n");
   return collapsed.trim();
 }
