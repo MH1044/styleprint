@@ -29,3 +29,23 @@ Command: `npm run test:db`
 All eight tables from the data model exist, one row was created and read back
 per table, and cascade delete on `profiles` removes dependent `samples` and
 `chunks`. Gate passed.
+
+## Step 3 — ingest
+
+Command: `npm run test:ingest`
+
+```
+ RUN  v5.1.0 <repo>/server
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  23:34:09
+   Duration  576ms (import 64%, tests 26%, transform 10%, worker 1%)
+```
+
+All three `fixtures/corpus/*.md` files ingest with plausible word and chunk
+counts; `.docx` and `.pdf` extraction round-trip through `mammoth`/`pdf-parse`;
+boilerplate stripping removes signatures, quoted replies, page numbers and
+bare URLs without eating real content; the sentence splitter survives common
+abbreviations; near-duplicate paragraphs are dropped; uniform list-heavy text
+is flagged as AI-like and bursty human prose is not. Gate passed.
