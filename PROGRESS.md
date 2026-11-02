@@ -69,3 +69,23 @@ vocabulary, hedging, quirks) plus derived targets for every corpus fixture;
 cosine similarity of a text's feature vector against itself is exactly 1.0,
 and the voice-match score between two different human voices lands strictly
 between 0 and 100. Gate passed.
+
+## Step 5 — AI client
+
+Command: `npm run test:ai`
+
+```
+ RUN  v5.1.0 <repo>/server
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  23:40:41
+   Duration  335ms (import 60%, transform 33%, tests 5%, worker 2%)
+```
+
+Mock mode returns a pass-2 rewrite with a parseable `{confidence, changed,
+unsure}` JSON tail, a pass-1 rewrite with no tail, and is deterministic for
+the same paragraph. Credential resolution follows the required order: own
+key (from the credential file) beats `PUBLIK_API_KEY` beats the per-install
+credential file beats nothing, which throws `NoCredentialsError`. Gate
+passed.
