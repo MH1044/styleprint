@@ -161,6 +161,10 @@ export function listChunksByProfile(db: Database.Database, profileId: string): C
   return rows.map(rowToChunk);
 }
 
+export function updateChunkEmbedding(db: Database.Database, id: string, embedding: number[]): void {
+  db.prepare(`UPDATE chunks SET embedding = ? WHERE id = ?`).run(JSON.stringify(embedding), id);
+}
+
 export function listChunksBySample(db: Database.Database, sampleId: string): Chunk[] {
   const rows = db.prepare(`SELECT * FROM chunks WHERE sample_id = ?`).all(sampleId) as ChunkRow[];
   return rows.map(rowToChunk);
