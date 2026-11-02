@@ -1,0 +1,25 @@
+node_modules/
+dist/
+build/
+.vite/
+*.log
+.env
+.env.local
+coverage/
+playwright-report/
+test-results/
+.voicebox/
+*.sqlite
+*.sqlite-journal
+.DS_Store
+Thumbs.db
+
+# local-only, never published
+CLAUDE.md
+AGENTS.local.md
+.claude/
+private/
+COWORK-*
+HANDOFF.md
+NEXT-PLANS.md
+QA-REPORT.md

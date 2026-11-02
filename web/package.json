@@ -1,0 +1,34 @@
+{
+  "name": "@voicebox/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@voicebox/shared": "0.1.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@tiptap/react": "3.32.2",
+    "@tiptap/pm": "3.32.2",
+    "@tiptap/starter-kit": "3.32.2",
+    "@tiptap/extension-table": "3.32.2",
+    "@tiptap/extension-table-row": "3.32.2",
+    "@tiptap/extension-table-cell": "3.32.2",
+    "@tiptap/extension-table-header": "3.32.2"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vite": "6.4.5",
+    "@vitejs/plugin-react": "4.7.0",
+    "tailwindcss": "4.3.4",
+    "@tailwindcss/vite": "4.3.4",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@playwright/test": "1.64.1"
+  }
+}
