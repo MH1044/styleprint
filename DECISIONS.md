@@ -28,3 +28,20 @@ build plan needed a concrete choice.
 9. **`node-gyp rebuild` for `better-sqlite3`** required `npm install-scripts approve`
    under npm's install-script gate; recorded here since it's a one-time local step a
    fresh clone will also need the first time (`npm install` prompts for it).
+10. **`server/src/env.ts` exposes functions, not frozen constants**, for every path
+    and flag (`isMockMode()`, `publikApiBaseUrl()`, `voiceboxHome()`, ...). A plain
+    `export const` would freeze its value at first import, which breaks under ESM's
+    import hoisting the moment a test tries to set `VOICEBOX_MOCK` or redirect
+    `VOICEBOX_HOME` before exercising the module.
+11. **`x-publik-*` response header names are assumed**, not confirmed against a live
+    publik account: `x-publik-model`, `x-publik-charge-micros` (the one name the spec
+    states verbatim), `x-publik-balance-after-micros`, `x-publik-weekly-usage-micros`,
+    `x-publik-weekly-budget-micros`, `x-publik-reset-at`. If the live API differs,
+    only `extractUsageHeaders` in `server/src/ai/client.ts` needs to change.
+12. **Embeddings use the tier name `publik-embed`**, invented the same way the chat
+    tiers are: a name, never a vendor model string, since the spec's tier table only
+    covers chat completions.
+13. **Mock mode's embeddings call throws rather than faking a response.** The spec
+    says mock mode should fall back to local TF-IDF for embeddings, and that fallback
+    needs corpus-wide context the generic AI client doesn't have — so the client
+    throws and the embeddings module (step 6) catches it and switches to TF-IDF.

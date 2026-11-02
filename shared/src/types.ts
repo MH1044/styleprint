@@ -143,11 +143,20 @@ export interface AiUsageHeaders {
   resetAt: string | null;
 }
 
+export type MockKind = "pass1" | "pass2" | "tag" | "style-card" | "generic";
+
+export interface MockHint {
+  kind: MockKind;
+  /** The paragraph being rewritten, used only by mock mode to build a deterministic reply. */
+  paragraph?: string;
+}
+
 export interface ChatCompletionRequest {
   tier: ModelTier;
   system?: string;
   prompt: string;
   temperature: number;
+  mock?: MockHint;
 }
 
 export interface ChatCompletionResult {
