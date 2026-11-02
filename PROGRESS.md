@@ -107,3 +107,30 @@ In mock mode (TF-IDF fallback path), a fixture paragraph used as its own
 query comes back first with score 1.0; a topically related paragraph outranks
 unrelated ones; TF-IDF vectors share one vocabulary and are deterministic for
 identical text. Gate passed.
+
+## Step 7 — style card and the two-pass pipeline
+
+Command: `npm run test:pipeline`
+
+```
+ RUN  v5.1.0 <repo>/server
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  23:51:52
+   Duration  365ms (import 65%, tests 17%, transform 16%, worker 2%)
+```
+
+`fixtures/draft.md` runs through style-card generation, pass 1 (de-AI), pass
+2 (voice, with retrieved corpus examples), and the local+fast post-check with
+single retry, all in mock mode. Every number and proper noun in the draft
+(42%, 1,200, $3.2 million, 15 countries, 78%/65%/12%/9%, 300, Acme
+Corporation, San Francisco, Microsoft Teams, Austin, Maria Alvarez, Q3
+2026, Q1 2027) survives in the final text, every paragraph ends `done` or
+`needs_review`, and the voice-match score rises (89 → 94 on this fixture).
+Gate passed.
+
+Fixed along the way: `parsePass2Response` was finding the last `{` character
+anywhere in the response, which lands inside the nested `unsure` array
+instead of at the start of the top-level tail object; it now reads the
+JSON tail from the final line only, per the prompt's own instruction.

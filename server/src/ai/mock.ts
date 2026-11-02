@@ -1,5 +1,5 @@
 import type { ChatCompletionRequest, ChatCompletionResult, MockHint } from "@voicebox/shared";
-import { splitIntoSentences } from "../ingest/split.js";
+import { splitIntoSentences, wordCount } from "../ingest/split.js";
 
 const VERB_CONTRACTIONS: [RegExp, string][] = [
   [/\bdo not\b/gi, "don't"],
@@ -14,7 +14,64 @@ const VERB_CONTRACTIONS: [RegExp, string][] = [
   [/\bwe are\b/gi, "we're"],
   [/\bI am\b/g, "I'm"],
   [/\bI have\b/g, "I've"],
+  [/\bthis is\b/gi, "this's"],
+  [/\bthat is\b/gi, "that's"],
+  [/\bwho is\b/gi, "who's"],
+  [/\bhave not\b/gi, "haven't"],
+  [/\bhas not\b/gi, "hasn't"],
+  [/\bwould not\b/gi, "wouldn't"],
+  [/\bshould not\b/gi, "shouldn't"],
+  [/\bwas not\b/gi, "wasn't"],
+  [/\bwere not\b/gi, "weren't"],
 ];
+
+// Stock AI throat-clearers and filler transitions: a real de-AI pass removes
+// these; mock mode strips the same ones so sentence length can move toward
+// the user's targets instead of staying frozen at the draft's own rhythm.
+const FILLER_OPENERS: RegExp[] = [
+  /^in today's fast-paced world,\s*/i,
+  /^it is important to note that\s*/i,
+  /^it is also worth noting that\s*/i,
+  /^it is worth noting that\s*/i,
+  /^it is crucial to acknowledge that\s*/i,
+  /^moreover,\s*/i,
+  /^furthermore,\s*/i,
+  /^additionally,\s*/i,
+  /^nevertheless,\s*/i,
+  /^ultimately,\s*/i,
+  /^in conclusion,\s*/i,
+  /^in summary,\s*/i,
+];
+
+function stripFiller(sentence: string): string {
+  let out = sentence;
+  for (const pattern of FILLER_OPENERS) {
+    if (pattern.test(out)) {
+      out = out.replace(pattern, "");
+      out = out.charAt(0).toUpperCase() + out.slice(1);
+      break;
+    }
+  }
+  return out;
+}
+
+const SPLIT_CONJUNCTIONS = [", and ", ", but ", ", while ", "; "];
+
+/** Breaks an overly long sentence into two at the first coordinating conjunction. */
+function splitLongSentence(sentence: string): string[] {
+  if (wordCount(sentence) < 26) return [sentence];
+  for (const conjunction of SPLIT_CONJUNCTIONS) {
+    const idx = sentence.indexOf(conjunction);
+    if (idx > 10) {
+      const first = sentence.slice(0, idx).trim();
+      let rest = sentence.slice(idx + conjunction.length).trim();
+      rest = rest.charAt(0).toUpperCase() + rest.slice(1);
+      const firstSentence = /[.!?]$/.test(first) ? first : `${first}.`;
+      return [firstSentence, rest];
+    }
+  }
+  return [sentence];
+}
 
 function seededShuffle<T>(items: T[], seed: number): T[] {
   const result = [...items];
@@ -27,15 +84,10 @@ function seededShuffle<T>(items: T[], seed: number): T[] {
   return result;
 }
 
-function contractAFew(text: string): string {
+function applyContractions(text: string): string {
   let out = text;
-  let applied = 0;
   for (const [pattern, replacement] of VERB_CONTRACTIONS) {
-    if (applied >= 3) break;
-    if (pattern.test(out)) {
-      out = out.replace(pattern, replacement);
-      applied++;
-    }
+    out = out.replace(pattern, replacement);
   }
   return out;
 }
@@ -50,13 +102,24 @@ function extractParagraph(hint: MockHint | undefined, prompt: string): string {
   return prompt.trim();
 }
 
-/** Deterministic rewrite for a paragraph: same input, same output, every run. */
+/**
+ * Deterministic rewrite for a paragraph: same input, same output, every
+ * run. Strips stock AI filler openers, splits overly long sentences,
+ * shuffles sentence order, and contracts verb phrases — a stand-in for a
+ * real de-AI/voice pass that still measurably moves the style fingerprint,
+ * not just the words. See DECISIONS.md.
+ */
 function mockRewrite(paragraph: string): string {
-  const sentences = splitIntoSentences(paragraph);
-  if (sentences.length <= 1) return contractAFew(paragraph);
-  const seed = paragraph.length + sentences.length;
-  const shuffled = seededShuffle(sentences, seed);
-  return contractAFew(shuffled.join(" "));
+  const rawSentences = splitIntoSentences(paragraph);
+  if (rawSentences.length === 0) return applyContractions(paragraph);
+
+  const processed = rawSentences.flatMap((s) => splitLongSentence(stripFiller(s)));
+
+  if (processed.length <= 1) return applyContractions(processed[0] ?? paragraph);
+
+  const seed = paragraph.length + processed.length;
+  const shuffled = seededShuffle(processed, seed);
+  return applyContractions(shuffled.join(" "));
 }
 
 function mockStyleCard(): string {
