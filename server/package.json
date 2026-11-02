@@ -1,0 +1,40 @@
+{
+  "name": "@voicebox/server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json --noEmit",
+    "test:db": "vitest run tests/db.test.ts",
+    "test:ingest": "vitest run tests/ingest.test.ts",
+    "test:fingerprint": "vitest run tests/fingerprint.test.ts",
+    "test:ai": "vitest run tests/ai.test.ts",
+    "test:embeddings": "vitest run tests/embeddings.test.ts",
+    "test:pipeline": "vitest run tests/pipeline.test.ts",
+    "test:export": "vitest run tests/export.test.ts",
+    "test:publik": "vitest run tests/publik.test.ts"
+  },
+  "dependencies": {
+    "@voicebox/shared": "0.1.0",
+    "express": "5.3.0",
+    "cors": "2.8.6",
+    "multer": "2.5.0",
+    "better-sqlite3": "13.0.3",
+    "docx": "9.15.1",
+    "mammoth": "1.13.0",
+    "pdf-parse": "2.4.5",
+    "pdf-lib": "1.17.1",
+    "openai": "7.47.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "tsx": "4.23.15",
+    "vitest": "5.1.0",
+    "@types/express": "5.0.6",
+    "@types/node": "26.6.6",
+    "@types/cors": "2.8.19",
+    "@types/multer": "2.3.0",
+    "@types/better-sqlite3": "9.6.0"
+  }
+}

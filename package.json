@@ -1,0 +1,38 @@
+{
+  "name": "voicebox",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI Humaniser: rewrite AI drafts in the user's own voice, locally profiled, billed per use through publik.",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "shared",
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,green \"npm run dev -w server\" \"npm run dev -w web\"",
+    "build": "npm run build -w shared && npm run build -w server && npm run build -w web",
+    "test:db": "npm run test:db -w server",
+    "test:ingest": "npm run test:ingest -w server",
+    "test:fingerprint": "npm run test:fingerprint -w server",
+    "test:ai": "npm run test:ai -w server",
+    "test:embeddings": "npm run test:embeddings -w server",
+    "test:pipeline": "npm run test:pipeline -w server",
+    "test:export": "npm run test:export -w server",
+    "test:publik": "npm run test:publik -w server",
+    "test:e2e": "npm run test:e2e -w web",
+    "check": "node scripts/check.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "10.0.6",
+    "typescript": "5.9.3"
+  },
+  "allowScripts": {
+    "better-sqlite3@13.0.3": true,
+    "esbuild@0.28.2": true,
+    "esbuild@0.25.12": true
+  }
+}
