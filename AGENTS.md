@@ -1,0 +1,63 @@
+# Agent conventions for this repo
+
+This file is for any coding agent (human-directed or automated) working on Voicebox.
+
+## publik API
+
+Voicebox bills AI usage through [publik](https://publikhq.com/developers), a metered
+LLM gateway. The humanising logic lives in this repo's prompts and style model; publik
+only supplies model calls and billing.
+
+**Setup prompt** (from publik's developer page, for a coding agent adding publik to a
+new surface in this app):
+
+```
+Add publik API to my app (publik slug: voicebox): ask for a tier slug (publik-fast/balanced/smart), pick the cheapest one the task needs, and write the publik log line. Fetch https://publikhq.com/skills/api.md with curl and follow it step by step.
+```
+
+**Client-selection order**, enforced by `server/src/ai/client.ts` and never bypassed:
+
+1. The user's own key + base URL (from the credential file's `userKey`/`userBaseUrl`).
+2. `PUBLIK_API_KEY` / `PUBLIK_API_BASE_URL` environment variables.
+3. The per-install credential file's `installKey` (minted once via `POST /installs`
+   from the public `publik-app-token.txt`).
+4. None of the above: the UI asks the user for their own key, or to run first-run
+   provisioning. See `README.md` for the manual token-mint step this build leaves to
+   a human (the real mint needs a browser approval step mid-flow).
+
+**Rules for any new AI call in this repo:**
+
+- Ask for a tier (`publik-fast` / `publik-balanced` / `publik-smart`), never a vendor
+  model name. publik swaps the backing model without the app needing to change.
+- Every call goes through `chatCompletion()` or `createEmbeddings()` in
+  `server/src/ai/client.ts` — never construct a second OpenAI client elsewhere.
+- Capture `x-publik-*` response headers via `extractUsageHeaders` and record a `spend`
+  row (`server/src/db/repo.ts: createSpend`) for anything that isn't a one-off dry run.
+- On a `402`, surface only `error.message` and `error.top_up_url` to the user — nothing
+  else from the response body.
+- `VOICEBOX_MOCK=1` must make the call deterministic and keep working with no key and
+  no network. Add new deterministic behaviour to `server/src/ai/mock.ts` by `kind`,
+  never by inlining mock logic at the call site.
+
+## Prompts
+
+Every prompt the app sends lives in `prompts/*.md` as a versioned file (filename ends
+`.v<N>.md`), loaded at runtime by `server/src/pipeline/prompts.ts`. Never inline a
+prompt string in code — add or edit a file in `prompts/` and bump its version suffix
+if the wording changes in a way that would make old `decisions.jsonl`/test fixtures
+behave differently.
+
+## Tests and gates
+
+Each server module has a dedicated `npm run test:<name>` script (see root
+`package.json`) and a Vitest file under `server/tests/`. `npm run check` runs every
+gate in sequence — run it before considering a change done. The frontend has one
+Playwright smoke test (`web/e2e/smoke.spec.ts`) that walks the full user journey in
+mock mode; update it when a screen's `data-testid` attributes change.
+
+## Data and privacy
+
+Nothing in `~/.voicebox/` (or `$VOICEBOX_HOME` when set) should ever be logged,
+printed, or committed. A `pk_` key must never enter the repo — `publik-app-token.txt`
+is the only credential-shaped file that is intentionally committed, and it holds the
+public `pat_` app token, not a live key.

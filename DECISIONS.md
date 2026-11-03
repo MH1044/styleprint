@@ -104,3 +104,10 @@ build plan needed a concrete choice.
     Its failure is folded into the same single retry as the local checks, rather than
     triggering a separate retry budget, matching "re-run once... or marked needs
     review" read as one combined check-and-retry step, not two independent ones.
+29. **The first-run card's "no credentials yet" check is a dedicated endpoint**
+    (`GET /wallet/credential-status`), not inferred from a failed wallet call. Mock
+    mode always reports a usable mock wallet, so the card needs its own signal to stay
+    hidden in mock mode while still showing up on a genuine first run with no key.
+30. **`publik-app-token.txt` ships with a placeholder value**, not a real `pat_` token
+    — there is no real publik account to mint one from in this build. README says so
+    explicitly rather than silently shipping something that looks real but isn't.

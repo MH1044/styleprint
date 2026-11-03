@@ -202,3 +202,26 @@ stripping the `# ` heading marker) matches the plain-text export built from
 the same editor paragraphs. The `.pdf` export loads back with `pdf-lib`,
 honours Letter vs A4 page width, and paginates a long document across
 multiple pages. Gate passed.
+
+## Step 10 — publik wiring
+
+Command: `npm run test:publik`
+
+```
+ RUN  v5.1.0 <repo>/server
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 1 skipped (2)
+   Start at  00:09:37
+   Duration  297ms (import 75%, transform 20%, tests 2%, worker 2%)
+```
+
+No `PUBLIK_API_KEY` is set in this environment, so the real-call test is
+skipped by design (`it.runIf`) and the mock-gate test runs instead,
+confirming a `publik-fast` mock call still returns a usable charge and
+model name. Added: `GET /wallet/credential-status` and a first-run banner
+that offers "use your own key" or "set up a free per-install key" when no
+credential exists (never shown in mock mode); `AGENTS.md` with the publik
+setup prompt, client-selection order, and per-call rules; `README.md` with
+install, mock mode, own-key, and the token-mint procedure as a numbered
+human step. Gate passed.

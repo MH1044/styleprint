@@ -131,7 +131,10 @@ export const api = {
       resetAt: string | null;
       source: string;
     }>("/wallet"),
+  getCredentialStatus: () =>
+    request<{ mock: boolean; hasCredentials: boolean; source: string }>("/wallet/credential-status"),
   setOwnKey: (apiKey: string, baseUrl?: string) =>
     request("/wallet/own-key", { method: "POST", body: JSON.stringify({ apiKey, baseUrl }) }),
   clearOwnKey: () => request("/wallet/own-key", { method: "DELETE" }),
+  provisionInstallKey: () => request("/wallet/provision", { method: "POST" }),
 };

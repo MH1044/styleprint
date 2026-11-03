@@ -5,6 +5,7 @@ import RewritePage from "./pages/RewritePage.js";
 import WizardPage from "./pages/WizardPage.js";
 import EditorPage from "./pages/EditorPage.js";
 import WalletBadge from "./components/WalletBadge.js";
+import FirstRunCard from "./components/FirstRunCard.js";
 
 export type View = "profiles" | "ingest" | "rewrite" | "wizard" | "editor";
 
@@ -87,6 +88,8 @@ export default function App() {
           <WalletBadge />
         </div>
       </header>
+
+      <FirstRunCard />
 
       <main className="mx-auto max-w-4xl px-6 py-8">
         {view === "profiles" && <ProfilesPage onSelect={selectProfile} />}
