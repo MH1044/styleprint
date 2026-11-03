@@ -23,7 +23,7 @@ The first `npm install` will ask you to approve `better-sqlite3`'s native build 
 `npm rebuild better-sqlite3` once approved) — this is npm's own install-script safety
 gate, not something specific to this project.
 
-Node 20+ is required.
+Node 22+ is required (`better-sqlite3`'s declared minimum — see DECISIONS.md #43).
 
 ## 2. Run in mock mode (no key, no network, no spend)
 
