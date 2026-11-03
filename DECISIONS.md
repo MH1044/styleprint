@@ -148,7 +148,38 @@ build plan needed a concrete choice.
 36. **App icon is a generated placeholder** (`src-tauri/icons/icon-source.png`, a plain
     two-tone chevron, run through `npm run desktop:icon`), not real brand art. Swap the
     source PNG and rerun that script before shipping a real release.
-37. **Build targets are NSIS + MSI on Windows only** for now (`tauri.conf.json`'s
-    `bundle.targets`); macOS/Linux bundles are unbuilt and untested since this machine
-    is Windows-only. The Rust/TypeScript code has no Windows-specific assumptions
-    beyond the path-prefix fix above, so other targets are plausible but unverified.
+37. **`bundle.targets` is `"all"`**, not an explicit list — it was `["nsis", "msi"]`
+    (Windows-only) until macOS support was added; `"all"` lets Tauri pick the right
+    bundle types per host OS (dmg/app on macOS, nsis/msi on Windows) from one config.
+
+## macOS support, added as a further follow-up
+
+38. **macOS builds run on GitHub Actions, not locally.** This project's build
+    environment is Windows-only; Tauri/Rust can't cross-compile a macOS `.app` from
+    Windows (needs Apple's SDK and codesigning tools). `.github/workflows/
+    desktop-release.yml` builds on `macos-latest` on a version tag or manual dispatch.
+    Unverified by direct testing (no Mac to click-test on) — verify via the Actions
+    run logs and, ideally, an actual Mac before relying on it for a real release.
+39. **Universal binary (arm64 + x64 in one `.dmg`)**, via `tauri build --target
+    universal-apple-darwin` with both Rust targets installed on the CI runner. This
+    works cleanly here because of decision 40 — a true universal *app* with a
+    single-arch *native dependency* inside would silently break on one architecture.
+40. **The server bundle is built once (on a plain `ubuntu-latest` job) and reused for
+    every platform's Tauri build**, rather than rebuilt per-OS. `better-sqlite3`
+    ships prebuilt native binaries for every platform/arch combination inside the npm
+    package itself (`prebuildify`-style — `node_modules/better-sqlite3/prebuilds/*.node`),
+    selected at `require()` time by the *running* process's platform/arch, not by
+    whatever machine ran `npm install`. One bundle is therefore already portable
+    everywhere; building it three times would just be slower for no benefit.
+41. **`tauri.conf.json`'s `build.frontendDist` points at a static placeholder**
+    (`src-tauri/dummy-dist/index.html`), not `../web/dist`. This app never loads
+    Tauri's own bundled frontend — `main.rs` always opens a window pointed at the
+    locally-running Express server's URL once it's healthy — but the Tauri CLI still
+    hard-requires `frontendDist` to exist as a real directory before it will bundle
+    at all. Pointing it at `../web/dist` would force every platform's CI job to
+    rebuild the web frontend before `tauri build`, for a directory that is never
+    actually read; the placeholder removes that ordering dependency entirely.
+42. **Shipping unsigned on macOS for now** (no notarization, no Developer ID). Users
+    hit Gatekeeper's "app is damaged" warning until they right-click → Open once or
+    run `xattr -cr`. Signing requires a paid Apple Developer account and credentials
+    as CI secrets — a deliberate deferral, not an oversight; see README's macOS section.

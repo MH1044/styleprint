@@ -122,6 +122,25 @@ see "Credential order" below; nothing about the desktop wrap changes where data 
 To regenerate the app icon from a new source image:
 `npm run desktop:icon` (reads `src-tauri/icons/icon-source.png`).
 
+### macOS
+
+Built via GitHub Actions (`.github/workflows/desktop-release.yml`), not locally — there's
+no Mac in this project's build environment. Push a tag matching `v*.*.*` (or run the
+workflow manually from the Actions tab) and it builds a **universal** `.dmg`/`.app`
+(one file, runs natively on both Apple Silicon and Intel) alongside the Windows
+installers, and uploads them as workflow artifacts.
+
+**Unsigned for now** — no Apple Developer account is configured. macOS's Gatekeeper
+will refuse to open it with "app is damaged" or similar. To run it anyway, users
+either right-click the app → Open (and confirm) the first time, or run:
+
+```
+xattr -cr /Applications/Voicebox.app
+```
+
+Signing and notarization are a follow-up once there's a Developer ID to sign with
+(DECISIONS.md #38).
+
 ## Development
 
 - `npm run dev` — server + web together.
