@@ -18,12 +18,9 @@ cd voicebox
 npm install
 ```
 
-The first `npm install` will ask you to approve `better-sqlite3`'s native build step
-(`npm install-scripts approve better-sqlite3`, then `npm install` again, or just
-`npm rebuild better-sqlite3` once approved) — this is npm's own install-script safety
-gate, not something specific to this project.
-
 Node 22+ is required (`better-sqlite3`'s declared minimum — see DECISIONS.md #43).
+No native build step needed — `better-sqlite3` ships a prebuilt binary for your
+platform directly in the package (DECISIONS.md #44).
 
 ## 2. Run in mock mode (no key, no network, no spend)
 
