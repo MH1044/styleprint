@@ -25,9 +25,14 @@ build plan needed a concrete choice.
    fixed for v1 and the spec only asks for "migrations on boot."
 8. **Embeddings and documents store vectors as JSON text columns** in SQLite (no
    `sqlite-vec`), per the build plan's substitution table; cosine similarity runs in JS.
-9. **`node-gyp rebuild` for `better-sqlite3`** required `npm install-scripts approve`
-   under npm's install-script gate; recorded here since it's a one-time local step a
-   fresh clone will also need the first time (`npm install` prompts for it).
+9. ~~`node-gyp rebuild` for `better-sqlite3` required `npm install-scripts approve`~~
+   **Correction (see #44): this was never necessary and is now actively wrong.**
+   `better-sqlite3@13.0.3` ships prebuilt native binaries for every platform/arch
+   inside the npm package itself; approving and running its install script instead
+   triggers a real from-source compile, which only "worked" locally because this
+   machine happens to have usable Visual Studio tools. Left struck through rather
+   than deleted, since #44 explains the fix and a silently-vanished decision is
+   harder to learn from than a visibly corrected one.
 10. **`server/src/env.ts` exposes functions, not frozen constants**, for every path
     and flag (`isMockMode()`, `publikApiBaseUrl()`, `voiceboxHome()`, ...). A plain
     `export const` would freeze its value at first import, which breaks under ESM's
@@ -194,3 +199,15 @@ build plan needed a concrete choice.
     one instruction in the original build spec this build deviates from outright,
     because the alternative is a project that cannot actually install on the version
     it claims to support.
+44. **`better-sqlite3` is never approved in `allowScripts`, and should not be.** Raising
+    the Node version (#43) didn't fix the Windows CI failure — it was never a Node
+    version problem. `better-sqlite3@13.0.3` sets `"gypfile": false` and ships
+    prebuilt binaries for every platform/arch directly in the package
+    (`node_modules/better-sqlite3/prebuilds/*.node`, committed data files, not build
+    output); a plain `npm ci`/`npm install` uses one of those with no compile step
+    and no approval needed, confirmed by a from-scratch local reinstall. Approving its
+    install script does the opposite of what the earlier decision #9 assumed: it
+    makes npm attempt a real `node-gyp rebuild` from source, which depends on a
+    working Visual Studio detection that failed on the GitHub-hosted Windows runner
+    (node-gyp couldn't parse that runner's installed VS version string) even after
+    the Node bump. Removing the approval fixed Windows CI outright.
