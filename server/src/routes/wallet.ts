@@ -2,13 +2,28 @@ import { Router } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { getWallet, writeCredentialFile, clearUserKey, provisionInstallKey } from "../ai/index.js";
+import { getWallet, writeCredentialFile, clearUserKey, provisionInstallKey, resolveCredentials } from "../ai/index.js";
+import { isMockMode } from "../env.js";
 import { PublikPaymentError } from "@voicebox/shared";
 
 export const walletRouter = Router();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_TOKEN_PATH = path.resolve(__dirname, "../../../publik-app-token.txt");
+
+/** Drives the first-run card: does the app already have a usable credential? */
+walletRouter.get("/credential-status", (_req, res) => {
+  if (isMockMode()) {
+    res.json({ mock: true, hasCredentials: true, source: "mock" });
+    return;
+  }
+  try {
+    const creds = resolveCredentials();
+    res.json({ mock: false, hasCredentials: true, source: creds.source });
+  } catch {
+    res.json({ mock: false, hasCredentials: false, source: "none" });
+  }
+});
 
 walletRouter.get("/", async (_req, res) => {
   try {
