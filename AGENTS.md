@@ -66,6 +66,11 @@ its own file locations (prompts/, the web build, the app token — all computed 
 `.exe` directly before assuming it still works; a green `tsc`/`vitest` run does not
 exercise the bundled/packaged code path. See `DECISIONS.md` #31-37.
 
+macOS builds happen only in CI (`.github/workflows/desktop-release.yml`, triggered by
+a `v*.*.*` tag or manual dispatch) — there's no Mac in this project's local build
+environment, so changes to `src-tauri/` that might affect macOS need verification via
+that workflow's logs, not just a local Windows build.
+
 ## Data and privacy
 
 Nothing in `~/.voicebox/` (or `$VOICEBOX_HOME` when set) should ever be logged,

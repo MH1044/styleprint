@@ -1,0 +1,71 @@
+name: Desktop Release
+
+# Builds the Tauri desktop installer for Windows and macOS (universal:
+# arm64 + x64 in one .dmg/.app). Triggers on a version tag, or manually via
+# workflow_dispatch for a test run without cutting a release.
+#
+# Unsigned on macOS for now (no Apple Developer account configured): the
+# built .app/.dmg will show Gatekeeper's "can't be opened" warning until a
+# user right-clicks -> Open once, or runs `xattr -cr`. See README.md.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch: {}
+
+jobs:
+  bundle-server:
+    # The server bundle (esbuild output + better-sqlite3, which ships
+    # prebuilt native binaries for every platform/arch inside the npm
+    # package itself) is platform-agnostic. Build it once, reuse it for
+    # every OS's Tauri build below, instead of repeating this per-platform.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run build -w web
+      - run: npm run bundle:desktop -w server
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-resources
+          path: src-tauri/resources
+
+  build-desktop:
+    needs: bundle-server
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            tauri-args: --target universal-apple-darwin
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+          - platform: windows-latest
+            tauri-args: ""
+            rust-targets: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: server-resources
+          path: src-tauri/resources
+      - run: npx tauri build ${{ matrix.tauri-args }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voicebox-${{ matrix.platform }}
+          path: |
+            src-tauri/target/**/bundle/**/*.dmg
+            src-tauri/target/**/bundle/**/*.app
+            src-tauri/target/**/bundle/**/*.exe
+            src-tauri/target/**/bundle/**/*.msi
+          if-no-files-found: error
