@@ -36,11 +36,11 @@ function writeStorage(key: string, value: string | null) {
 
 export default function App() {
   const [view, setView] = useState<View>("profiles");
-  const [profileId, setProfileId] = useState<string | null>(() => readStorage("voicebox.profileId"));
-  const [documentId, setDocumentId] = useState<string | null>(() => readStorage("voicebox.documentId"));
+  const [profileId, setProfileId] = useState<string | null>(() => readStorage("styleprint.profileId"));
+  const [documentId, setDocumentId] = useState<string | null>(() => readStorage("styleprint.documentId"));
 
-  useEffect(() => writeStorage("voicebox.profileId", profileId), [profileId]);
-  useEffect(() => writeStorage("voicebox.documentId", documentId), [documentId]);
+  useEffect(() => writeStorage("styleprint.profileId", profileId), [profileId]);
+  useEffect(() => writeStorage("styleprint.documentId", documentId), [documentId]);
 
   function selectProfile(id: string) {
     setProfileId(id);
@@ -67,7 +67,7 @@ export default function App() {
     <div className="min-h-screen bg-stone-50 text-stone-900">
       <header className="border-b border-stone-200 bg-white">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <h1 className="text-lg font-semibold tracking-tight">Voicebox</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Styleprint</h1>
           <nav className="flex items-center gap-1 text-sm">
             {STEPS.map((step, i) => (
               <button

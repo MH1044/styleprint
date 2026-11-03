@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { PipelineRunResult } from "@voicebox/shared";
+import type { PipelineRunResult } from "@styleprint/shared";
 import { api, ApiError } from "../api/client.js";
 
 function formatMicros(micros: number): string {

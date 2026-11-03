@@ -1,4 +1,4 @@
-// Voicebox desktop shell: spawns the existing Express+SQLite server as a
+// Styleprint desktop shell: spawns the existing Express+SQLite server as a
 // child process (same code as `npm run dev`, just run from the bundle this
 // installer ships), waits for it to come up, then opens one window pointed
 // at it. No Rust reimplementation of app logic — the server is the app.
@@ -23,6 +23,15 @@ fn strip_verbatim_prefix(path: &std::path::Path) -> String {
 }
 
 fn main() {
+    // Builder check for the publik API wiring: `PUBLIK_SELF_TEST=1 styleprint.exe`
+    // runs the bundled server's own self-test and exits, no window. See
+    // https://publikhq.com/skills/setup.md step 6 — this proves the real,
+    // built release artifact calls publik, not a dev server or a script.
+    if std::env::var("PUBLIK_SELF_TEST").is_ok() {
+        run_self_test();
+        return;
+    }
+
     tauri::Builder::default()
         .setup(|app| {
             let handle = app.handle().clone();
@@ -70,7 +79,7 @@ fn main() {
                             "main",
                             WebviewUrl::External(url.parse().expect("invalid server URL")),
                         )
-                        .title("Voicebox")
+                        .title("Styleprint")
                         .inner_size(1200.0, 820.0)
                         .min_inner_size(800.0, 600.0)
                         .build()
@@ -85,5 +94,32 @@ fn main() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running the Voicebox application");
+        .expect("error while running the Styleprint application");
+}
+
+/// Resolves resources the same way the real app would (so this matches the
+/// macOS .app bundle layout too, not just Windows), but without starting the
+/// event loop or opening any window — just runs the bundled server with
+/// PUBLIK_SELF_TEST=1 and relays its exit code.
+fn run_self_test() {
+    let app = tauri::Builder::default()
+        .build(tauri::generate_context!())
+        .expect("failed to initialize app context for self-test");
+    let resource_dir = app
+        .path()
+        .resource_dir()
+        .expect("could not resolve resource directory");
+    let server_entry = resource_dir.join("server").join("index.mjs");
+
+    if !server_entry.exists() {
+        eprintln!("bundled server not found at {}", server_entry.display());
+        std::process::exit(1);
+    }
+
+    let status = Command::new("node")
+        .arg(strip_verbatim_prefix(&server_entry))
+        .env("PUBLIK_SELF_TEST", "1")
+        .status()
+        .expect("failed to start the bundled server (is Node.js installed?)");
+    std::process::exit(status.code().unwrap_or(1));
 }

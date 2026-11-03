@@ -140,13 +140,13 @@ JSON tail from the final line only, per the prompt's own instruction.
 Command: `npm run build`
 
 ```
-> @voicebox/shared@0.1.0 build
+> @styleprint/shared@0.1.0 build
 > tsc -p tsconfig.json --noEmit
 
-> @voicebox/server@0.1.0 build
+> @styleprint/server@0.1.0 build
 > tsc -p tsconfig.json --noEmit
 
-> @voicebox/web@0.1.0 build
+> @styleprint/web@0.1.0 build
 > tsc -p tsconfig.json --noEmit && vite build
 
 vite v6.4.5 building for production...
@@ -286,18 +286,18 @@ Command: `npm run desktop:build`
 
 ```
     Finished `release` profile [optimized] target(s) in 1m 59s
-       Built application at: C:\Users\mhrah\dev\Humaniser\src-tauri\target\release\voicebox.exe
-     Running makensis to produce .../bundle/nsis/Voicebox_0.1.0_x64-setup.exe
-     Running light to produce .../bundle/msi/Voicebox_0.1.0_x64_en-US.msi
+       Built application at: C:\Users\mhrah\dev\Humaniser\src-tauri\target\release\styleprint.exe
+     Running makensis to produce .../bundle/nsis/Styleprint_0.1.0_x64-setup.exe
+     Running light to produce .../bundle/msi/Styleprint_0.1.0_x64_en-US.msi
     Finished 2 bundles at:
-        .../bundle/nsis/Voicebox_0.1.0_x64-setup.exe (10.74 MiB)
-        .../bundle/msi/Voicebox_0.1.0_x64_en-US.msi (14.95 MiB)
+        .../bundle/nsis/Styleprint_0.1.0_x64-setup.exe (10.74 MiB)
+        .../bundle/msi/Styleprint_0.1.0_x64_en-US.msi (14.95 MiB)
 ```
 
-Verified by actually launching the built `voicebox.exe` (not just a successful
+Verified by actually launching the built `styleprint.exe` (not just a successful
 compile): it spawned the bundled server, which answered `/health` with
 `{"ok":true}`, served the built frontend at `/` with a 200, and opened a real
-native window titled "Voicebox" (confirmed via `Get-Process`'s
+native window titled "Styleprint" (confirmed via `Get-Process`'s
 `MainWindowTitle`). Two real bugs were caught this way and fixed — neither
 would have shown up from a green compile alone:
 

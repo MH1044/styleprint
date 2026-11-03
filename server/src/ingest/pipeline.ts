@@ -2,7 +2,7 @@ import { extractText } from "./extract.js";
 import { cleanSampleText } from "./clean.js";
 import { splitIntoParagraphs, splitIntoSentences, wordCount } from "./split.js";
 import { detectAiLikeSample, dedupeParagraphs, MIN_SAMPLE_WORDS } from "./analyze.js";
-import type { Tag } from "@voicebox/shared";
+import type { Tag } from "@styleprint/shared";
 
 export interface IngestChunkDraft {
   kind: "sentence" | "paragraph";

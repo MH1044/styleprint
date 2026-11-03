@@ -1,4 +1,4 @@
-import type { StyleProfile } from "@voicebox/shared";
+import type { StyleProfile } from "@styleprint/shared";
 import { FUNCTION_WORDS } from "./functionWords.js";
 
 /**

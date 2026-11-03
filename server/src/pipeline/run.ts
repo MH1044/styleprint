@@ -3,7 +3,7 @@ import type {
   PipelineRunResult,
   StyleProfile,
   UnsureSpan,
-} from "@voicebox/shared";
+} from "@styleprint/shared";
 import { protectParagraph, stripKeepMarkers } from "./protect.js";
 import { runPass1 } from "./pass1.js";
 import { runPass2 } from "./pass2.js";

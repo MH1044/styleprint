@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Profile } from "@voicebox/shared";
+import type { Profile } from "@styleprint/shared";
 import { api } from "../api/client.js";
 
 export default function ProfilesPage({ onSelect }: { onSelect: (id: string) => void }) {

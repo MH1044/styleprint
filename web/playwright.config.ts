@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Outside the repo on purpose: Vite watches the whole web/ root, and
 // better-sqlite3's WAL files under a repo-local data dir would trigger a
 // full page reload (and lose test state) on every database write.
-const VOICEBOX_HOME = path.join(os.tmpdir(), "voicebox-e2e-home");
+const STYLEPRINT_HOME = path.join(os.tmpdir(), "styleprint-e2e-home");
 
 export default defineConfig({
   testDir: "./e2e",
@@ -28,8 +28,8 @@ export default defineConfig({
       url: "http://localhost:3002/health",
       reuseExistingServer: false,
       env: {
-        VOICEBOX_MOCK: "1",
-        VOICEBOX_HOME,
+        STYLEPRINT_MOCK: "1",
+        STYLEPRINT_HOME,
         PORT: "3002",
       },
       stdout: "pipe",
@@ -41,8 +41,8 @@ export default defineConfig({
       url: "http://localhost:5174",
       reuseExistingServer: false,
       env: {
-        VOICEBOX_MOCK: "1",
-        VOICEBOX_API_PROXY: "http://localhost:3002",
+        STYLEPRINT_MOCK: "1",
+        STYLEPRINT_API_PROXY: "http://localhost:3002",
       },
       stdout: "pipe",
       stderr: "pipe",

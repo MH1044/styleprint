@@ -1,4 +1,4 @@
-import type { ChatCompletionResult, StyleProfile } from "@voicebox/shared";
+import type { ChatCompletionResult, StyleProfile } from "@styleprint/shared";
 import { chatCompletion } from "../ai/client.js";
 import { renderPrompt } from "./prompts.js";
 

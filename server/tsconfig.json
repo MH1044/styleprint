@@ -4,7 +4,7 @@
     "outDir": "dist",
     "types": ["node"],
     "paths": {
-      "@voicebox/shared": ["../shared/src/types.ts"]
+      "@styleprint/shared": ["../shared/src/types.ts"]
     }
   },
   "include": ["src", "tests"]

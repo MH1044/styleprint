@@ -25,6 +25,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # The npm bundled with setup-node's Node 22 still runs the classic
+      # implicit `node-gyp rebuild` for any package with a binding.gyp and no
+      # declared install script (better-sqlite3 has neither "install" nor
+      # "postinstall" — it ships prebuilt binaries instead). A newer npm skips
+      # that implicit rebuild by default; pinned to the version verified
+      # locally to do so, rather than trusting it stays true on `latest`.
+      - run: npm install -g npm@11.19.0
       - run: npm ci
       - run: npm run build -w web
       - run: npm run bundle:desktop -w server
@@ -54,6 +61,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.rust-targets }}
+      - run: npm install -g npm@11.19.0
       - run: npm ci
       - uses: actions/download-artifact@v4
         with:
@@ -62,7 +70,7 @@ jobs:
       - run: npx tauri build ${{ matrix.tauri-args }}
       - uses: actions/upload-artifact@v4
         with:
-          name: voicebox-${{ matrix.platform }}
+          name: styleprint-${{ matrix.platform }}
           path: |
             src-tauri/target/**/bundle/**/*.dmg
             src-tauri/target/**/bundle/**/*.app

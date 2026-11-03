@@ -1,4 +1,4 @@
-import type { Pass2Tail } from "@voicebox/shared";
+import type { Pass2Tail } from "@styleprint/shared";
 
 export interface ParsedPass2 {
   text: string;

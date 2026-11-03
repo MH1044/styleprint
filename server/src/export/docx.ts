@@ -36,7 +36,7 @@ export async function buildDocx(options: DocxExportOptions): Promise<Buffer> {
     : undefined;
 
   const doc = new Document({
-    creator: options.authorName ?? "Voicebox",
+    creator: options.authorName ?? "Styleprint",
     title: options.title,
     sections: [
       {

@@ -2,7 +2,7 @@ import { wordCount } from "../ingest/split.js";
 import { extractKeepSpans } from "./protect.js";
 import { chatCompletion } from "../ai/client.js";
 import { renderPrompt } from "./prompts.js";
-import type { AiUsageHeaders, ModelTier } from "@voicebox/shared";
+import type { AiUsageHeaders, ModelTier } from "@styleprint/shared";
 
 export interface LocalCheckResult {
   passed: boolean;

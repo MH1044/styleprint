@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ParagraphRecord } from "@voicebox/shared";
+import type { ParagraphRecord } from "@styleprint/shared";
 import { api } from "../api/client.js";
 import { wordDiff } from "../lib/diff.js";
 
