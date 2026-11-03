@@ -183,3 +183,14 @@ build plan needed a concrete choice.
     hit Gatekeeper's "app is damaged" warning until they right-click → Open once or
     run `xattr -cr`. Signing requires a paid Apple Developer account and credentials
     as CI secrets — a deliberate deferral, not an oversight; see README's macOS section.
+43. **Correction: the real minimum is Node 22, not 20.** `package.json`'s `engines`
+    field said `>=20` since step 1 (matching the spec's literal "Node 20" instruction),
+    and every local gate passed because this machine happens to run Node 24. The
+    desktop-release workflow's first real CI run caught the gap: `better-sqlite3@13.0.3`
+    declares `"engines": {"node": ">=22"}`; under Node 20 its prebuilt binary wasn't
+    used and npm fell back to compiling from source, which then failed on the Windows
+    runner for a second, unrelated reason (no usable Visual Studio install detected).
+    `engines` is now `>=22` and the workflow's `setup-node` steps request Node 22 — the
+    one instruction in the original build spec this build deviates from outright,
+    because the alternative is a project that cannot actually install on the version
+    it claims to support.
