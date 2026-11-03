@@ -225,3 +225,53 @@ credential exists (never shown in mock mode); `AGENTS.md` with the publik
 setup prompt, client-selection order, and per-call rules; `README.md` with
 install, mock mode, own-key, and the token-mint procedure as a numbered
 human step. Gate passed.
+
+## Step 11 — final
+
+Command: `npm run check`
+
+```
+=== Gate 1: scaffold (health check) ===
+curl localhost:3001/health -> {"ok":true}
+
+=== Gate 2: db schema ===
+ Test Files  1 passed (1)   Tests  3 passed (3)
+
+=== Gate 3: ingest ===
+ Test Files  1 passed (1)   Tests  14 passed (14)
+
+=== Gate 4: fingerprint ===
+ Test Files  1 passed (1)   Tests  6 passed (6)
+
+=== Gate 5: ai client ===
+ Test Files  1 passed (1)   Tests  8 passed (8)
+
+=== Gate 6: embeddings and retrieval ===
+ Test Files  1 passed (1)   Tests  5 passed (5)
+
+=== Gate 7: style card and pipeline ===
+ Test Files  1 passed (1)   Tests  1 passed (1)
+
+=== Gate 8: frontend (build + e2e) ===
+vite v6.4.5 building for production...
+✓ 99 modules transformed.
+dist/assets/index-CrDmKQoC.js   632.05 kB │ gzip: 201.16 kB
+✓ built in 1.54s
+Running 1 test using 1 worker
+  ✓  1 [chromium] › smoke.spec.ts full flow (2.8s)
+  1 passed (6.6s)
+
+=== Gate 9: export ===
+ Test Files  1 passed (1)   Tests  7 passed (7)
+
+=== Gate 10: publik wiring ===
+ Test Files  1 passed (1)   Tests  1 passed | 1 skipped (2)
+
+All eleven gates passed.
+```
+
+(Full per-gate output, unabridged, is in the Step 1-10 sections above; this
+is `npm run check` — `scripts/check.mjs` — running every one of them in
+sequence from a single command, which is itself gate 11's requirement.)
+`README.md`, `LICENSE` (AGPL-3.0), `AGENTS.md` and the versioned `prompts/*.md`
+files are all in place. Gate passed. Definition of done is met.
