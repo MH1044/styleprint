@@ -123,3 +123,77 @@ export async function createEmbeddings(texts: string[]): Promise<EmbeddingResult
     throw toPublikError(err);
   }
 }
+
+export interface WalletStatus {
+  balanceMicros: number | null;
+  weeklyUsageMicros: number | null;
+  weeklyBudgetMicros: number | null;
+  resetAt: string | null;
+  source: "mock" | "live";
+}
+
+interface WalletResponseBody {
+  balance_micros?: number;
+  weekly_usage_micros?: number;
+  weekly_budget_micros?: number;
+  reset_at?: string;
+}
+
+/** GET /wallet: balance, weekly budget, reset time, shown in the app footer. */
+export async function getWallet(): Promise<WalletStatus> {
+  if (isMockMode()) {
+    return {
+      balanceMicros: 5_000_000,
+      weeklyUsageMicros: 0,
+      weeklyBudgetMicros: 20_000_000,
+      resetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      source: "mock",
+    };
+  }
+
+  const creds = resolveCredentials();
+  const response = await fetch(`${creds.baseURL}/wallet`, {
+    headers: { Authorization: `Bearer ${creds.apiKey}` },
+  });
+  if (!response.ok) {
+    if (response.status === 402) {
+      const body = (await response.json().catch(() => ({}))) as ErrorBody;
+      throw new PublikPaymentError(body.error?.message ?? body.message ?? "Payment required.", body.error?.top_up_url ?? body.top_up_url ?? null);
+    }
+    throw new Error(`wallet request failed: ${response.status}`);
+  }
+  const body = (await response.json()) as WalletResponseBody;
+  return {
+    balanceMicros: body.balance_micros ?? null,
+    weeklyUsageMicros: body.weekly_usage_micros ?? null,
+    weeklyBudgetMicros: body.weekly_budget_micros ?? null,
+    resetAt: body.reset_at ?? null,
+    source: "live",
+  };
+}
+
+interface InstallResponseBody {
+  key?: string;
+  api_key?: string;
+}
+
+/**
+ * POST /installs: mints a per-install pk_ key from the public app token.
+ * Documented as a manual step in README since the real mint needs a human
+ * to approve in a browser mid-flow; this function is what that step calls.
+ */
+export async function provisionInstallKey(appToken: string, baseURL?: string): Promise<string> {
+  const url = `${baseURL ?? publikApiBaseUrl()}/installs`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${appToken}` },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    throw new Error(`install provisioning failed: ${response.status}`);
+  }
+  const body = (await response.json()) as InstallResponseBody;
+  const key = body.key ?? body.api_key;
+  if (!key) throw new Error("install response did not include a key");
+  return key;
+}

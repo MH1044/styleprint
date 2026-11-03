@@ -282,6 +282,11 @@ export function createParagraph(
   };
 }
 
+export function getParagraph(db: Database.Database, id: string): ParagraphRecord | null {
+  const row = db.prepare(`SELECT * FROM paragraphs WHERE id = ?`).get(id) as ParagraphRow | undefined;
+  return row ? rowToParagraph(row) : null;
+}
+
 export function listParagraphsByDocument(db: Database.Database, documentId: string): ParagraphRecord[] {
   const rows = db
     .prepare(`SELECT * FROM paragraphs WHERE document_id = ? ORDER BY idx ASC`)

@@ -134,3 +134,50 @@ Fixed along the way: `parsePass2Response` was finding the last `{` character
 anywhere in the response, which lands inside the nested `unsure` array
 instead of at the start of the top-level tail object; it now reads the
 JSON tail from the final line only, per the prompt's own instruction.
+
+## Step 8 — frontend
+
+Command: `npm run build`
+
+```
+> @voicebox/shared@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+> @voicebox/server@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+> @voicebox/web@0.1.0 build
+> tsc -p tsconfig.json --noEmit && vite build
+
+vite v6.4.5 building for production...
+✓ 98 modules transformed.
+dist/index.html                 0.39 kB │ gzip:   0.26 kB
+dist/assets/index-yENcD4bt.css  12.56 kB │ gzip:   3.44 kB
+dist/assets/index-KbC6cv3s.js   629.88 kB │ gzip: 200.53 kB
+✓ built in 1.53s
+```
+
+Command: `npm run test:e2e`
+
+```
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e\smoke.spec.ts:21:1 › full flow: profile -> ingest -> rewrite -> wizard -> editor -> export (2.9s)
+
+  1 passed (6.7s)
+```
+
+Both halves of the gate are green: `npm run build` type-checks shared,
+server and web with no errors and produces a production bundle; the
+Playwright smoke test walks a real browser through create profile → paste
+two writing samples → build style card → paste an AI draft → rewrite →
+resolve all wizard cards by keeping them → open in editor → run voice check
+→ open the export dialog → download a `.docx`, a `.pdf` and a `.md`, all in
+mock mode with no key and no network.
+
+Fixed along the way: the wizard queue was keying "still needs review" on
+whether a paragraph had any `unsureJson` entries, but mock mode's pass 2
+always attaches one — so a paragraph never left the queue even after the
+user kept it, and the smoke test caught the counter never moving past "3
+left to review". The queue now also excludes any paragraph with a logged
+decision.
