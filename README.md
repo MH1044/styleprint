@@ -1,6 +1,6 @@
-# Voicebox
+# Styleprint
 
-Voicebox takes your own past writing, builds a local style profile from it, and
+Styleprint takes your own past writing, builds a local style profile from it, and
 rewrites AI-generated drafts so they read in your voice. The AI calls run through
 [publik](https://publikhq.com/developers), a metered LLM gateway, so you pay cents per
 use instead of a subscription. Your writing never leaves your machine — only the
@@ -14,7 +14,7 @@ made where the spec was silent.
 
 ```
 git clone <this repo>
-cd voicebox
+cd styleprint
 npm install
 ```
 
@@ -25,7 +25,7 @@ platform directly in the package (DECISIONS.md #44).
 ## 2. Run in mock mode (no key, no network, no spend)
 
 ```
-VOICEBOX_MOCK=1 npm run dev
+STYLEPRINT_MOCK=1 npm run dev
 ```
 
 This starts the API on `http://localhost:3001` and the app on `http://localhost:5173`.
@@ -37,7 +37,7 @@ cost and zero network calls.
 On Windows (PowerShell), set the variable first:
 
 ```
-$env:VOICEBOX_MOCK = "1"
+$env:STYLEPRINT_MOCK = "1"
 npm run dev
 ```
 
@@ -45,7 +45,7 @@ npm run dev
 
 Any OpenAI-compatible endpoint works — publik itself, or a local server like Ollama or
 LM Studio. In the app, the "No publik key yet" banner on first run lets you paste a key
-and (optionally) a base URL; it's saved to `~/.voicebox/credential.json` (mode `0600`)
+and (optionally) a base URL; it's saved to `~/.styleprint/credential.json` (mode `0600`)
 and never leaves your machine except as the `Authorization` header on each call.
 
 Without the UI, set the environment variable instead:
@@ -69,11 +69,11 @@ leaves it as a manual step rather than fully automating it:
 1. Make sure `publik-app-token.txt` at the repo root holds your project's real `pat_`
    token (the placeholder value shipped here, `pat_REPLACE_WITH_REAL_PUBLIK_APP_TOKEN_BEFORE_LISTING`,
    is not usable — replace it before you rely on this path).
-2. Start the app without `VOICEBOX_MOCK` set.
+2. Start the app without `STYLEPRINT_MOCK` set.
 3. Click "Set up free key" on the first-run banner, or call the same endpoint directly:
    `curl -X POST http://localhost:3001/api/wallet/provision`.
 4. Approve the install in whatever page publik opens (device-flow / browser approval).
-5. The minted key is written to `~/.voicebox/credential.json` as `installKey` and used
+5. The minted key is written to `~/.styleprint/credential.json` as `installKey` and used
    automatically from then on.
 
 ## Credential order
@@ -86,11 +86,11 @@ Every AI call resolves credentials in this order, enforced in
 3. The per-install key from step 4 above.
 4. None of the above → the app asks you to pick one of the two paths.
 
-`VOICEBOX_MOCK=1` short-circuits all of this.
+`STYLEPRINT_MOCK=1` short-circuits all of this.
 
 ## Desktop installer (Windows)
 
-Voicebox also builds as a real installable desktop app via [Tauri](https://tauri.app):
+Styleprint also builds as a real installable desktop app via [Tauri](https://tauri.app):
 a native window that spawns the same Express server this repo already has, waits for
 it to come up, and points the window at it. No browser tab, no terminal, no typing
 `npm run dev` — just an installer and a Start Menu entry.
@@ -109,11 +109,11 @@ This builds the web frontend, bundles the server into a single file
 (`server/scripts/bundle-desktop.mjs`), and runs `tauri build`. Installers land in
 `src-tauri/target/release/bundle/`:
 
-- `nsis/Voicebox_<version>_x64-setup.exe`
-- `msi/Voicebox_<version>_x64_en-US.msi`
+- `nsis/Styleprint_<version>_x64-setup.exe`
+- `msi/Styleprint_<version>_x64_en-US.msi`
 
 Both install a normal Windows app: Start Menu entry, uninstaller, no admin terminal
-required. Data still lives in `~/.voicebox/` on whichever machine it's installed on —
+required. Data still lives in `~/.styleprint/` on whichever machine it's installed on —
 see "Credential order" below; nothing about the desktop wrap changes where data lives.
 
 To regenerate the app icon from a new source image:
@@ -132,7 +132,7 @@ will refuse to open it with "app is damaged" or similar. To run it anyway, users
 either right-click the app → Open (and confirm) the first time, or run:
 
 ```
-xattr -cr /Applications/Voicebox.app
+xattr -cr /Applications/Styleprint.app
 ```
 
 Signing and notarization are a follow-up once there's a Developer ID to sign with
@@ -149,7 +149,7 @@ Signing and notarization are a follow-up once there's a Developer ID to sign wit
 
 ## Privacy
 
-- Corpus, profiles, documents and decisions live only in `~/.voicebox/` (SQLite, mode
+- Corpus, profiles, documents and decisions live only in `~/.styleprint/` (SQLite, mode
   `0600`).
 - Per rewrite call, only the paragraph, its two neighbours, the style card, and 6-8
   retrieved snippets go to publik. The full corpus is never sent.

@@ -15,7 +15,7 @@ function run(cmd) {
 async function healthCheck() {
   const child = spawn("npm run dev", {
     shell: true,
-    env: { ...process.env, VOICEBOX_MOCK: "1" },
+    env: { ...process.env, STYLEPRINT_MOCK: "1" },
     stdio: "ignore",
   });
 

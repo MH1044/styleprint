@@ -34,10 +34,10 @@ build plan needed a concrete choice.
    than deleted, since #44 explains the fix and a silently-vanished decision is
    harder to learn from than a visibly corrected one.
 10. **`server/src/env.ts` exposes functions, not frozen constants**, for every path
-    and flag (`isMockMode()`, `publikApiBaseUrl()`, `voiceboxHome()`, ...). A plain
+    and flag (`isMockMode()`, `publikApiBaseUrl()`, `styleprintHome()`, ...). A plain
     `export const` would freeze its value at first import, which breaks under ESM's
-    import hoisting the moment a test tries to set `VOICEBOX_MOCK` or redirect
-    `VOICEBOX_HOME` before exercising the module.
+    import hoisting the moment a test tries to set `STYLEPRINT_MOCK` or redirect
+    `STYLEPRINT_HOME` before exercising the module.
 11. **`x-publik-*` response header names are assumed**, not confirmed against a live
     publik account: `x-publik-model`, `x-publik-charge-micros` (the one name the spec
     states verbatim), `x-publik-balance-after-micros`, `x-publik-weekly-usage-micros`,
@@ -101,7 +101,7 @@ build plan needed a concrete choice.
     so a queue keyed only on "has an unsure span" never empties once the user starts
     resolving items — found by the step 8 Playwright smoke test, which kept clicking
     Keep without the counter ever moving.
-27. **Playwright's e2e `VOICEBOX_HOME` lives under the OS temp dir, not inside
+27. **Playwright's e2e `STYLEPRINT_HOME` lives under the OS temp dir, not inside
     `web/`.** Vite watches the whole web root; a repo-local SQLite data directory
     triggers a full page reload on every WAL write mid-test, wiping component state.
 28. **The post-check's "one `publik-fast` call" is a per-paragraph semantic check**
@@ -211,3 +211,15 @@ build plan needed a concrete choice.
     working Visual Studio detection that failed on the GitHub-hosted Windows runner
     (node-gyp couldn't parse that runner's installed VS version string) even after
     the Node bump. Removing the approval fixed Windows CI outright.
+45. **Renamed Voicebox → Styleprint before listing**, because "voicebox" was already
+    taken on publik. Checked `styleprint` was free on npm first (a 404, not a version)
+    before committing to a full rename: npm scope (`@voicebox/*` → `@styleprint/*`),
+    env vars (`VOICEBOX_MOCK`/`VOICEBOX_HOME` → `STYLEPRINT_MOCK`/`STYLEPRINT_HOME`),
+    the data directory (`~/.voicebox` → `~/.styleprint`), the publik `APP_SLUG`, the
+    Tauri identifier/productName/binary name, the GitHub repo
+    (`MH1044/voicebox` → `MH1044/styleprint`), and every doc. A mechanical, three-pass
+    case-sensitive find-and-replace (`Voicebox`→`Styleprint`, `VOICEBOX`→`STYLEPRINT`,
+    `voicebox`→`styleprint`) across every non-generated source and doc file, since the
+    three cases never collide as substrings of each other. `SPEC.md` is untouched — it's
+    the user's own original document and "Voicebox (working name)" is accurate history,
+    not a bug to fix.

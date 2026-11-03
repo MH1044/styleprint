@@ -5,7 +5,7 @@ import type {
   ParagraphRecord,
   PipelineRunResult,
   Tag,
-} from "@voicebox/shared";
+} from "@styleprint/shared";
 
 const BASE = "/api";
 

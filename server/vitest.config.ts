@@ -8,7 +8,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@voicebox/shared": fileURLToPath(new URL("../shared/src/types.ts", import.meta.url)),
+      "@styleprint/shared": fileURLToPath(new URL("../shared/src/types.ts", import.meta.url)),
     },
   },
 });

@@ -16,7 +16,7 @@ import type {
   ModelTier,
   StyleProfile,
   UnsureSpan,
-} from "@voicebox/shared";
+} from "@styleprint/shared";
 
 interface ProfileRow {
   id: string;

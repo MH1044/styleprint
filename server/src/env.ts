@@ -3,27 +3,27 @@ import path from "node:path";
 import fs from "node:fs";
 
 // Every path and flag here is read live from process.env rather than frozen
-// at import time, so tests can redirect VOICEBOX_HOME / toggle VOICEBOX_MOCK
+// at import time, so tests can redirect STYLEPRINT_HOME / toggle STYLEPRINT_MOCK
 // per-case without worrying about ESM import hoisting order.
 
-export function voiceboxHome(): string {
-  return process.env.VOICEBOX_HOME ?? path.join(os.homedir(), ".voicebox");
+export function styleprintHome(): string {
+  return process.env.STYLEPRINT_HOME ?? path.join(os.homedir(), ".styleprint");
 }
 export function corpusDir(): string {
-  return path.join(voiceboxHome(), "corpus");
+  return path.join(styleprintHome(), "corpus");
 }
 export function documentsDir(): string {
-  return path.join(voiceboxHome(), "documents");
+  return path.join(styleprintHome(), "documents");
 }
 export function dbPath(): string {
-  return path.join(voiceboxHome(), "voicebox.sqlite");
+  return path.join(styleprintHome(), "styleprint.sqlite");
 }
 export function credentialFilePath(): string {
-  return path.join(voiceboxHome(), "credential.json");
+  return path.join(styleprintHome(), "credential.json");
 }
 
 export function ensureDirs(): void {
-  for (const dir of [voiceboxHome(), corpusDir(), documentsDir()]) {
+  for (const dir of [styleprintHome(), corpusDir(), documentsDir()]) {
     fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
 }
@@ -31,11 +31,15 @@ export function ensureDirs(): void {
 export const PORT = Number(process.env.PORT ?? 3001);
 
 export function isMockMode(): boolean {
-  return process.env.VOICEBOX_MOCK === "1";
+  return process.env.STYLEPRINT_MOCK === "1";
 }
 export function publikApiBaseUrl(): string {
   return process.env.PUBLIK_API_BASE_URL ?? "https://publikhq.com/api/v1";
 }
 export function publikApiKey(): string | null {
   return process.env.PUBLIK_API_KEY ?? null;
+}
+/** Overrides reading publik-app-token.txt off disk, per the publik.ts reference. */
+export function publikAppTokenEnv(): string | null {
+  return process.env.PUBLIK_APP_TOKEN?.trim() || null;
 }

@@ -1,6 +1,6 @@
 import { chatCompletion } from "../ai/client.js";
 import { renderPrompt } from "./prompts.js";
-import type { ChatCompletionResult } from "@voicebox/shared";
+import type { ChatCompletionResult } from "@styleprint/shared";
 
 export interface Pass1Input {
   paragraph: string;

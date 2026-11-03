@@ -1,4 +1,4 @@
-import type { Histogram, StyleProfile, StyleTargets } from "@voicebox/shared";
+import type { Histogram, StyleProfile, StyleTargets } from "@styleprint/shared";
 import { splitIntoParagraphs, splitIntoSentences, wordCount } from "../ingest/split.js";
 import { FUNCTION_WORD_SET } from "./functionWords.js";
 import { LLM_VOCAB } from "./llmVocab.js";

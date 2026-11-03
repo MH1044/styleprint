@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table";
-import type { ParagraphRecord, VoiceDocument } from "@voicebox/shared";
+import type { ParagraphRecord, VoiceDocument } from "@styleprint/shared";
 import { api } from "../api/client.js";
 import { ProvenanceExtension, type Provenance } from "../editor/provenance.js";
 

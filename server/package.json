@@ -1,5 +1,5 @@
 {
-  "name": "@voicebox/server",
+  "name": "@styleprint/server",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -17,7 +17,7 @@
     "test:publik": "vitest run tests/publik.test.ts"
   },
   "dependencies": {
-    "@voicebox/shared": "0.1.0",
+    "@styleprint/shared": "0.1.0",
     "express": "5.3.0",
     "cors": "2.8.6",
     "multer": "2.5.0",

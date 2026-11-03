@@ -1,21 +1,9 @@
 import { Router } from "express";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { getWallet, writeCredentialFile, clearUserKey, provisionInstallKey, resolveCredentials } from "../ai/index.js";
+import { getWallet, writeCredentialFile, clearUserKey, provision, resolveCredentials } from "../ai/index.js";
 import { isMockMode } from "../env.js";
-import { PublikPaymentError } from "@voicebox/shared";
+import { PublikPaymentError } from "@styleprint/shared";
 
 export const walletRouter = Router();
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Source tree (server/src/routes -> repo root) or the desktop bundle, where
-// bundle-desktop.mjs copies the token next to the single bundled file.
-const APP_TOKEN_PATH = [
-  path.resolve(__dirname, "../../../publik-app-token.txt"),
-  path.resolve(__dirname, "publik-app-token.txt"),
-].find((p) => fs.existsSync(p)) ?? path.resolve(__dirname, "../../../publik-app-token.txt");
 
 /** Drives the first-run card: does the app already have a usable credential? */
 walletRouter.get("/credential-status", (_req, res) => {
@@ -61,17 +49,15 @@ walletRouter.delete("/own-key", (_req, res) => {
 });
 
 walletRouter.post("/provision", async (_req, res) => {
-  let appToken: string;
   try {
-    appToken = fs.readFileSync(APP_TOKEN_PATH, "utf8").trim();
-  } catch {
-    res.status(500).json({ error: { message: "publik-app-token.txt not found" } });
-    return;
-  }
-  try {
-    const key = await provisionInstallKey(appToken);
-    writeCredentialFile({ installKey: key });
-    res.json({ ok: true });
+    const credential = await provision();
+    res.json({
+      ok: true,
+      claimUrl: credential.installClaimUrl,
+      claimState: credential.installClaimState,
+      costSentence: credential.installCostSentence,
+      balanceMicros: credential.installBalanceMicros,
+    });
   } catch (err) {
     res.status(502).json({ error: { message: err instanceof Error ? err.message : "provisioning failed" } });
   }

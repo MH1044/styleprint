@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Sample, Tag } from "@voicebox/shared";
+import type { Sample, Tag } from "@styleprint/shared";
 import { api } from "../api/client.js";
 
 const TAGS: Tag[] = ["email", "essay", "blog", "report", "other"];
@@ -83,7 +83,7 @@ export default function IngestPage({ profileId, onReady }: { profileId: string; 
       <div>
         <h2 className="text-xl font-semibold">Add your writing</h2>
         <p className="mt-1 text-sm text-stone-500">
-          The corpus stays in <code>~/.voicebox/corpus/</code>. It is never uploaded in full — only short retrieved
+          The corpus stays in <code>~/.styleprint/corpus/</code>. It is never uploaded in full — only short retrieved
           snippets are sent to the model during a rewrite.
         </p>
       </div>

@@ -12,7 +12,7 @@ const CORPUS_DIR = path.resolve(__dirname, "../../fixtures/corpus");
 const ORIGINAL_ENV = { ...process.env };
 
 beforeEach(() => {
-  process.env.VOICEBOX_MOCK = "1";
+  process.env.STYLEPRINT_MOCK = "1";
 });
 
 afterEach(() => {

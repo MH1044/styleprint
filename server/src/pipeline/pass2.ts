@@ -1,7 +1,7 @@
 import { chatCompletion } from "../ai/client.js";
 import { renderPrompt } from "./prompts.js";
 import { parsePass2Response, type ParsedPass2 } from "./parseTail.js";
-import type { ModelTier, StyleTargets } from "@voicebox/shared";
+import type { ModelTier, StyleTargets } from "@styleprint/shared";
 
 export interface Pass2Input {
   paragraph: string;

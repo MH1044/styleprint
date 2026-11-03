@@ -10,7 +10,7 @@ afterEach(() => {
 
 describe("publik wiring", () => {
   it.runIf(Boolean(REAL_KEY))("makes one real publik-fast call and prints its charge header", async () => {
-    delete process.env.VOICEBOX_MOCK;
+    delete process.env.STYLEPRINT_MOCK;
     const result = await chatCompletion({
       tier: "publik-fast",
       temperature: 0,
@@ -25,7 +25,7 @@ describe("publik wiring", () => {
   it.runIf(!REAL_KEY)(
     "falls back to the step-5 mock gate when PUBLIK_API_KEY is not set",
     async () => {
-      process.env.VOICEBOX_MOCK = "1";
+      process.env.STYLEPRINT_MOCK = "1";
       const result = await chatCompletion({
         tier: "publik-fast",
         temperature: 0,

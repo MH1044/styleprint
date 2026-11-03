@@ -8,7 +8,7 @@ import { resolveCredentials, NoCredentialsError, writeCredentialFile } from "../
 const ORIGINAL_ENV = { ...process.env };
 
 beforeEach(() => {
-  process.env.VOICEBOX_MOCK = "1";
+  process.env.STYLEPRINT_MOCK = "1";
 });
 
 afterEach(() => {
@@ -71,8 +71,8 @@ describe("resolveCredentials", () => {
   let tmpHome: string;
 
   beforeEach(() => {
-    tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "voicebox-test-"));
-    process.env.VOICEBOX_HOME = tmpHome;
+    tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "styleprint-test-"));
+    process.env.STYLEPRINT_HOME = tmpHome;
     delete process.env.PUBLIK_API_KEY;
   });
 

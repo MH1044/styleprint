@@ -1,5 +1,5 @@
 {
-  "name": "voicebox",
+  "name": "styleprint",
   "private": true,
   "version": "0.1.0",
   "description": "AI Humaniser: rewrite AI drafts in the user's own voice, locally profiled, billed per use through publik.",

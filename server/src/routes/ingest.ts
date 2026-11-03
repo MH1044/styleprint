@@ -3,7 +3,7 @@ import multer from "multer";
 import { getDb } from "../db/client.js";
 import { createSample, createChunk, listSamplesByProfile, getProfile } from "../db/repo.js";
 import { ingestUpload, ingestRawText } from "../ingest/pipeline.js";
-import type { Tag } from "@voicebox/shared";
+import type { Tag } from "@styleprint/shared";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 

@@ -3,7 +3,10 @@ export {
   createEmbeddings,
   resolveCredentials,
   getWallet,
-  provisionInstallKey,
+  provision,
+  selfTest,
+  APP_SLUG,
+  APP_VERSION,
   NoCredentialsError,
 } from "./client.js";
 export type { WalletStatus } from "./client.js";

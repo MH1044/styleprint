@@ -16,7 +16,7 @@ import { protectParagraph, stripKeepMarkers } from "../pipeline/protect.js";
 import { nearestParagraphs } from "../embeddings/index.js";
 import { blendParagraphs } from "../pipeline/blend.js";
 import { computeStyleProfile, voiceMatchScore } from "../fingerprint/index.js";
-import type { ParagraphRecord } from "@voicebox/shared";
+import type { ParagraphRecord } from "@styleprint/shared";
 
 export const wizardRouter = Router();
 

@@ -1,9 +1,18 @@
 import OpenAI from "openai";
-import type { AiUsageHeaders, ChatCompletionRequest, ChatCompletionResult, EmbeddingResult } from "@voicebox/shared";
-import { PublikPaymentError } from "@voicebox/shared";
-import { isMockMode, publikApiBaseUrl, publikApiKey } from "../env.js";
-import { readCredentialFile } from "./credentials.js";
+import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import type { AiUsageHeaders, ChatCompletionRequest, ChatCompletionResult, EmbeddingResult } from "@styleprint/shared";
+import { PublikPaymentError } from "@styleprint/shared";
+import { isMockMode, publikApiBaseUrl, publikApiKey, publikAppTokenEnv } from "../env.js";
+import { readCredentialFile, writeCredentialFile, type CredentialFile } from "./credentials.js";
 import { mockChatCompletion } from "./mock.js";
+
+/** Identifies this app to publik. Bump APP_VERSION when cutting a tagged release. */
+export const APP_SLUG = "styleprint";
+export const APP_VERSION = "0.1.0";
 
 export type CredentialSource = "own-key" | "env" | "install-file";
 
@@ -172,28 +181,108 @@ export async function getWallet(): Promise<WalletStatus> {
   };
 }
 
+/**
+ * Finds publik-app-token.txt next to this module or in a parent directory
+ * (the repo root, or — once bundled for the desktop build — the resources/
+ * server/ folder scripts/bundle-desktop.mjs copies it into). PUBLIK_APP_TOKEN
+ * in the environment overrides it.
+ */
+function readAppToken(): string {
+  const envToken = publikAppTokenEnv();
+  if (envToken) return envToken;
+  const startDir = path.dirname(fileURLToPath(import.meta.url));
+  for (let dir = startDir; ; dir = path.dirname(dir)) {
+    const file = path.join(dir, "publik-app-token.txt");
+    if (fs.existsSync(file)) return fs.readFileSync(file, "utf8").trim();
+    const parent = path.dirname(dir);
+    if (parent === dir) return "";
+  }
+}
+
+function currentOsName(): "macos" | "windows" | "linux" {
+  if (process.platform === "darwin") return "macos";
+  if (process.platform === "win32") return "windows";
+  return "linux";
+}
+
 interface InstallResponseBody {
   key?: string;
-  api_key?: string;
+  base_url?: string;
+  install_id?: string;
+  claim_url?: string | null;
+  claim_state?: CredentialFile["installClaimState"];
+  balance_micros?: number | null;
+  wallet?: { add_credit_url?: string | null };
+  disclosure?: { cost?: string | null };
+  error?: { message?: string; type?: string };
 }
 
 /**
- * POST /installs: mints a per-install pk_ key from the public app token.
- * Documented as a manual step in README since the real mint needs a human
- * to approve in a browser mid-flow; this function is what that step calls.
+ * POST /installs: mints (or re-fetches) a per-install pk_ key from the
+ * public app token. Called after the user accepts the publik disclosure, or
+ * by selfTest() as the builder's own consent to prove the wiring works.
  */
-export async function provisionInstallKey(appToken: string, baseURL?: string): Promise<string> {
-  const url = `${baseURL ?? publikApiBaseUrl()}/installs`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${appToken}` },
-    body: JSON.stringify({}),
-  });
-  if (!response.ok) {
-    throw new Error(`install provisioning failed: ${response.status}`);
+export async function provision(): Promise<CredentialFile> {
+  const token = readAppToken();
+  if (!token.startsWith("pat_")) {
+    throw new Error("This build has no publik API app token. Use your own key for now.");
   }
-  const body = (await response.json()) as InstallResponseBody;
-  const key = body.key ?? body.api_key;
-  if (!key) throw new Error("install response did not include a key");
-  return key;
+
+  const baseURL = publikApiBaseUrl();
+  const prior = readCredentialFile();
+  let installId = prior?.installId ?? randomUUID();
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch(`${baseURL}/installs`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        app_token: token,
+        app_slug: APP_SLUG,
+        app_version: APP_VERSION,
+        os: currentOsName(),
+        arch: process.arch,
+        device_name: os.hostname().slice(0, 120),
+        install_id: installId,
+        disclosure_version: 1,
+        dialects: ["chat_completions"],
+      }),
+    });
+    const body = (await response.json().catch(() => ({}))) as InstallResponseBody;
+    const key = body.key ?? (response.status === 200 ? prior?.installKey ?? null : null);
+
+    if ((response.status === 201 || response.status === 200) && key) {
+      const next = writeCredentialFile({
+        installKey: key,
+        installId: body.install_id ?? installId,
+        installClaimUrl: body.claim_url ?? null,
+        installClaimState: body.claim_state ?? "anonymous",
+        installAddCreditUrl: body.wallet?.add_credit_url ?? null,
+        installCostSentence: body.disclosure?.cost ?? null,
+        installBalanceMicros: body.balance_micros ?? null,
+      });
+      return next;
+    }
+    // A replay with no key on disk, or an install its owner revoked: retry once with a fresh install_id.
+    if (response.status === 200 || body.error?.type === "install_revoked") {
+      installId = randomUUID();
+      continue;
+    }
+    throw new Error(body.error?.message ?? `publik API could not set up this computer (${response.status}). Use your own key for now.`);
+  }
+  throw new Error("publik API could not set up this computer. Use your own key for now.");
+}
+
+/**
+ * Builder check: start the built app with PUBLIK_SELF_TEST=1 and read this
+ * line. It provisions for real — the builder running it is the consent.
+ * See https://publikhq.com/skills/setup.md step 6.
+ */
+export async function selfTest(): Promise<string> {
+  try {
+    const cred = await provision();
+    return `publik self-test: ok ${APP_SLUG} ${APP_VERSION} (install ${(cred.installId ?? "").slice(0, 8)})`;
+  } catch (e) {
+    return `publik self-test: failed: ${e instanceof Error ? e.message : String(e)}`;
+  }
 }

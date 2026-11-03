@@ -14,7 +14,7 @@ import {
 import { runPipeline } from "../pipeline/run.js";
 import { chatCompletion } from "../ai/client.js";
 import { computeStyleProfile, voiceMatchScore } from "../fingerprint/index.js";
-import type { ModelTier } from "@voicebox/shared";
+import type { ModelTier } from "@styleprint/shared";
 
 export const documentsRouter = Router();
 

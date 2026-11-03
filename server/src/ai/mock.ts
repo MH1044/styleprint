@@ -1,4 +1,4 @@
-import type { ChatCompletionRequest, ChatCompletionResult, MockHint } from "@voicebox/shared";
+import type { ChatCompletionRequest, ChatCompletionResult, MockHint } from "@styleprint/shared";
 import { splitIntoSentences, wordCount } from "../ingest/split.js";
 
 const VERB_CONTRACTIONS: [RegExp, string][] = [
