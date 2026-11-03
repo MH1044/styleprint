@@ -12,6 +12,8 @@ import {
   createSpend,
 } from "../db/repo.js";
 import { runPipeline } from "../pipeline/run.js";
+import { chatCompletion } from "../ai/client.js";
+import { computeStyleProfile, voiceMatchScore } from "../fingerprint/index.js";
 import type { ModelTier } from "@voicebox/shared";
 
 export const documentsRouter = Router();
@@ -101,6 +103,70 @@ documentsRouter.post("/:id/rewrite", async (req, res) => {
   } catch (err) {
     res.status(502).json({ error: { message: err instanceof Error ? err.message : "rewrite failed" } });
   }
+});
+
+const SELECTION_INSTRUCTIONS: Record<string, string> = {
+  "rewrite-voice": "Rewrite the following selection in the user's voice described above, keeping every fact exactly.",
+  "make-shorter": "Make the following selection noticeably shorter without losing any fact, number or name.",
+  "make-plainer": "Rewrite the following selection in plainer, simpler language, keeping every fact exactly.",
+  "undo-ai": "Rewrite the following selection to remove AI-sounding phrasing (filler, hedging, stacked transitions), keeping every fact exactly.",
+};
+
+documentsRouter.post("/:id/selection-rewrite", async (req, res) => {
+  const db = getDb();
+  const document = getDocument(db, req.params.id);
+  if (!document) {
+    res.status(404).json({ error: { message: "document not found" } });
+    return;
+  }
+  const profile = getProfile(db, document.profileId);
+  const text = typeof req.body?.text === "string" ? req.body.text : "";
+  const action = typeof req.body?.action === "string" ? req.body.action : "rewrite-voice";
+  if (!text.trim()) {
+    res.status(400).json({ error: { message: "text is required" } });
+    return;
+  }
+  const instruction = SELECTION_INSTRUCTIONS[action] ?? SELECTION_INSTRUCTIONS["rewrite-voice"];
+  const styleCard = profile?.styleCard ?? "No style card yet; use plain, clear prose.";
+
+  try {
+    const result = await chatCompletion({
+      tier: "publik-balanced",
+      temperature: 0.5,
+      prompt: `How the user writes:\n${styleCard}\n\n${instruction}\n\nSelection:\n${text}\n\nRespond with only the rewritten selection, no preamble.`,
+      mock: { kind: "pass1", paragraph: text },
+    });
+    res.json({ text: result.text, chargeMicros: result.usage.chargeMicros ?? 0 });
+  } catch (err) {
+    res.status(502).json({ error: { message: err instanceof Error ? err.message : "selection rewrite failed" } });
+  }
+});
+
+documentsRouter.post("/:id/voice-check", (req, res) => {
+  const db = getDb();
+  const document = getDocument(db, req.params.id);
+  if (!document) {
+    res.status(404).json({ error: { message: "document not found" } });
+    return;
+  }
+  const profile = getProfile(db, document.profileId);
+  if (!profile?.styleJson) {
+    res.status(400).json({ error: { message: "profile has no style profile yet" } });
+    return;
+  }
+  const text = typeof req.body?.text === "string" ? req.body.text : "";
+  const currentProfile = computeStyleProfile(text);
+  const score = voiceMatchScore(currentProfile, profile.styleJson);
+
+  const deltas = [
+    { label: "sentence length std dev", current: currentProfile.sentenceLength.std, target: profile.styleJson.sentenceLength.std },
+    { label: "contraction rate", current: currentProfile.contractionRate, target: profile.styleJson.contractionRate },
+    { label: "em dash rate", current: currentProfile.punctuation.emDashPer100Words, target: profile.styleJson.punctuation.emDashPer100Words },
+  ]
+    .map((d) => ({ ...d, diff: Math.abs(d.current - d.target) }))
+    .sort((a, b) => b.diff - a.diff);
+
+  res.json({ score, furthest: deltas.slice(0, 3) });
 });
 
 documentsRouter.put("/:id/editor", (req, res) => {

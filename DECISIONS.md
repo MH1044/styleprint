@@ -62,7 +62,44 @@ build plan needed a concrete choice.
     sheer dimension count, so a real rewrite that measurably changes rhythm and
     contractions barely moves the score. `styleVector`/`cosineSimilarity` stay
     exported as-is for anything that wants the flat comparison.
-17. **The post-check's "one `publik-fast` call" is a per-paragraph semantic check**
+17. **`GET /wallet` response field names are assumed** the same way the headers are:
+    `balance_micros`, `weekly_usage_micros`, `weekly_budget_micros`, `reset_at`. Only
+    `getWallet` in `server/src/ai/client.ts` needs to change if the live shape differs.
+18. **The wizard's per-paragraph "voice match below 60" queue bucket is not
+    implemented.** A single short paragraph has too few sentences for the Layer-1
+    fingerprint's std-dev-based stats to mean anything; the queue instead orders by
+    needs-review first, then by ascending pass-2 confidence, which covers the two
+    statistically meaningful signals the spec lists.
+19. **The wizard's "try again" retry reruns pass 2 only**, not pass 1, starting from
+    the stored pass-1 output. The steer is a voice/tone correction ("more blunt",
+    "this is a joke"), which is pass 2's job; re-running pass 1 as well would also
+    re-roll the de-AI rewrite for no reason tied to the user's steer.
+20. **Navigation is five local view-state buttons in `App.tsx`**, not a router
+    library. The app has five fixed screens in a fixed order; `react-router` would be
+    a runtime dependency for something five `useState` branches already do.
+22. **No diffing/markdown-editor dependency for the wizard's word-level highlight.**
+    `web/src/lib/diff.ts` is a small from-scratch LCS word diff — the only thing it
+    needs to do is highlight changed words between two short paragraphs.
+23. **The wizard card doesn't show the two retrieved corpus examples the model
+    leaned on.** Retrieved examples are passed to pass 2 but not persisted per
+    paragraph (no column for it, and adding one would deviate from the fixed data
+    model); the card shows the model's own `unsure` reason instead, which is stored.
+24. **`@tiptap/extension-table` bundles `Table`/`TableRow`/`TableHeader`/`TableCell`
+    as named exports**, so the separate per-node packages the spec's dependency list
+    implies aren't needed; removed them rather than carry three unused packages.
+25. **Real OOXML footnotes aren't implemented.** The docx exporter writes heading +
+    paragraphs only; Stage 6's footnote support would need a Tiptap footnote
+    extension and matching `docx` footnote wiring, both out of scope for the one-shot
+    budget. Noted so it isn't mistaken for an oversight.
+26. **The wizard queue excludes any paragraph with a logged decision**, not just ones
+    whose `unsureJson` is empty. Mock mode's pass 2 always attaches one `unsure` span,
+    so a queue keyed only on "has an unsure span" never empties once the user starts
+    resolving items — found by the step 8 Playwright smoke test, which kept clicking
+    Keep without the counter ever moving.
+27. **Playwright's e2e `VOICEBOX_HOME` lives under the OS temp dir, not inside
+    `web/`.** Vite watches the whole web root; a repo-local SQLite data directory
+    triggers a full page reload on every WAL write mid-test, wiping component state.
+28. **The post-check's "one `publik-fast` call" is a per-paragraph semantic check**
     (`runFastTagCheck`) run after the local checks, on the accepted pass-2 output.
     Its failure is folded into the same single retry as the local checks, rather than
     triggering a separate retry budget, matching "re-run once... or marked needs
