@@ -181,3 +181,24 @@ always attaches one — so a paragraph never left the queue even after the
 user kept it, and the smoke test caught the counter never moving past "3
 left to review". The queue now also excludes any paragraph with a logged
 decision.
+
+## Step 9 — export
+
+Command: `npm run test:export`
+
+```
+ RUN  v5.1.0 C:/Users/mhrah/dev/Humaniser/server
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  00:07:49
+   Duration  430ms (import 55%, tests 31%, transform 13%, worker 1%)
+```
+
+The exported `.docx` round-trips through `mammoth.extractRawText` and
+contains both the heading (document title) and every body paragraph, with
+and without a title page/AI-assisted footer. The `.md` export's body (after
+stripping the `# ` heading marker) matches the plain-text export built from
+the same editor paragraphs. The `.pdf` export loads back with `pdf-lib`,
+honours Letter vs A4 page width, and paginates a long document across
+multiple pages. Gate passed.
