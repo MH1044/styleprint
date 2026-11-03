@@ -275,3 +275,43 @@ is `npm run check` — `scripts/check.mjs` — running every one of them in
 sequence from a single command, which is itself gate 11's requirement.)
 `README.md`, `LICENSE` (AGPL-3.0), `AGENTS.md` and the versioned `prompts/*.md`
 files are all in place. Gate passed. Definition of done is met.
+
+## Follow-up — desktop installer (Tauri)
+
+Not one of the eleven build-order gates; a follow-up milestone built after the
+one-shot plan was complete, per the spec's own note that "Tauri wrap is a
+follow-up."
+
+Command: `npm run desktop:build`
+
+```
+    Finished `release` profile [optimized] target(s) in 1m 59s
+       Built application at: C:\Users\mhrah\dev\Humaniser\src-tauri\target\release\voicebox.exe
+     Running makensis to produce .../bundle/nsis/Voicebox_0.1.0_x64-setup.exe
+     Running light to produce .../bundle/msi/Voicebox_0.1.0_x64_en-US.msi
+    Finished 2 bundles at:
+        .../bundle/nsis/Voicebox_0.1.0_x64-setup.exe (10.74 MiB)
+        .../bundle/msi/Voicebox_0.1.0_x64_en-US.msi (14.95 MiB)
+```
+
+Verified by actually launching the built `voicebox.exe` (not just a successful
+compile): it spawned the bundled server, which answered `/health` with
+`{"ok":true}`, served the built frontend at `/` with a 200, and opened a real
+native window titled "Voicebox" (confirmed via `Get-Process`'s
+`MainWindowTitle`). Two real bugs were caught this way and fixed — neither
+would have shown up from a green compile alone:
+
+1. esbuild leaves `import.meta` empty when bundling to CJS, which silently
+   broke every module that resolves files relative to its own location
+   (prompts/, the web build, the app token). Fixed by bundling to ESM
+   (`.mjs`) instead, with a `createRequire` banner for one remaining
+   CJS-dependency edge case.
+2. `resource_dir()` returns a `\\?\`-prefixed Windows extended-length path;
+   passed straight through as Node's CLI argument, every launch failed with
+   `EISDIR: illegal operation on a directory, lstat 'C:'`. Fixed by stripping
+   the prefix before handing the path to `node`.
+
+`npm run check` (all eleven original gates) was re-run after this work and is
+still green — see DECISIONS.md #31-37 for what's in scope for this pass
+(Windows only, still requires Node.js on the target machine, placeholder
+icon) and what's left as further follow-up.

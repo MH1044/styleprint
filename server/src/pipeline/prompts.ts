@@ -3,7 +3,23 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PROMPTS_DIR = path.resolve(__dirname, "../../../prompts");
+
+/**
+ * Finds prompts/ in either layout: the source tree (server/src/pipeline ->
+ * repo root) or the desktop bundle, where scripts/bundle-desktop.mjs copies
+ * prompts/ next to the single bundled server file. Both resolve relative to
+ * this module's own location, which esbuild preserves via import.meta.url
+ * even after bundling everything into one file.
+ */
+function resolvePromptsDir(): string {
+  const candidates = [path.resolve(__dirname, "../../../prompts"), path.resolve(__dirname, "prompts")];
+  for (const dir of candidates) {
+    if (fs.existsSync(dir)) return dir;
+  }
+  throw new Error(`prompts/ not found in any of: ${candidates.join(", ")}`);
+}
+
+const PROMPTS_DIR = resolvePromptsDir();
 
 export type PromptName = "pass1-deai" | "pass2-voice" | "style-card" | "postcheck-retry";
 

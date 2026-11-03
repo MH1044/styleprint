@@ -111,3 +111,44 @@ build plan needed a concrete choice.
 30. **`publik-app-token.txt` ships with a placeholder value**, not a real `pat_` token
     — there is no real publik account to mint one from in this build. README says so
     explicitly rather than silently shipping something that looks real but isn't.
+
+## Desktop wrap (Tauri), added as a follow-up milestone
+
+31. **The desktop shell spawns the existing Express server as a plain child process**,
+    not a Tauri "sidecar" (the convention of bundling a single native per-platform
+    executable). The server is Node+TypeScript with one native dependency
+    (`better-sqlite3`); turning it into a true sidecar would mean embedding a Node
+    runtime binary, which is future work (decision 33).
+32. **`std::process::Command`, not `tauri-plugin-shell`**, spawns the server.** The
+    plugin's `Shell::command()` API is a thin wrapper for the same job and exists
+    mainly so JS code can invoke shell commands via IPC — this app never does that
+    (the spawn happens once, in Rust, in `setup()`), so the extra dependency and
+    its permission/capability surface bought nothing.
+33. **The installer still requires Node.js on the end user's machine.** `server/scripts/
+    bundle-desktop.mjs` produces a single ESM bundle (`esbuild`, one native external:
+    `better-sqlite3`, copied alongside with its own `node_modules`) that Tauri's Rust
+    shell spawns via a plain `node` on PATH. A fully standalone installer would bundle
+    a portable Node runtime as a real Tauri sidecar binary instead — documented here
+    as the natural next step, not attempted in this pass.
+34. **The server bundle targets ESM (`index.mjs`), not CJS.** Several modules resolve
+    files relative to their own location via `import.meta.url` (prompts/, the web
+    build, the app token) — esbuild leaves `import.meta` empty when bundling to CJS,
+    silently breaking all of those. The `.mjs` extension forces Node to treat the
+    single bundled file as ESM regardless of any nearby `package.json`. A `createRequire`
+    banner patches the one remaining issue: some bundled CJS dependencies (`debug`,
+    via `express`) call `require()` on Node core modules in a way esbuild can't
+    statically resolve for ESM output.
+35. **`resource_dir()`'s `\\?\`-prefixed Windows path is stripped before use as Node's
+    CLI argument.** Node's file APIs handle Windows extended-length paths fine, but its
+    *own* main-module resolver does not — passed through unmodified, every launch
+    failed with `EISDIR: illegal operation on a directory, lstat 'C:'` (the resolver
+    misreads the `\\?\` prefix as something UNC-shaped and truncates to the drive
+    letter). Found by actually running the built installer's `.exe`, not by reading
+    the Tauri docs — worth remembering if `resource_dir()` shows up anywhere else.
+36. **App icon is a generated placeholder** (`src-tauri/icons/icon-source.png`, a plain
+    two-tone chevron, run through `npm run desktop:icon`), not real brand art. Swap the
+    source PNG and rerun that script before shipping a real release.
+37. **Build targets are NSIS + MSI on Windows only** for now (`tauri.conf.json`'s
+    `bundle.targets`); macOS/Linux bundles are unbuilt and untested since this machine
+    is Windows-only. The Rust/TypeScript code has no Windows-specific assumptions
+    beyond the path-prefix fix above, so other targets are plausible but unverified.

@@ -24,11 +24,14 @@
     "test:export": "npm run test:export -w server",
     "test:publik": "npm run test:publik -w server",
     "test:e2e": "npm run test:e2e -w web",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "desktop:build": "npm run build -w web && npm run bundle:desktop -w server && tauri build",
+    "desktop:icon": "tauri icon src-tauri/icons/icon-source.png -o src-tauri/icons"
   },
   "devDependencies": {
     "concurrently": "10.0.6",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@tauri-apps/cli": "2.12.4"
   },
   "allowScripts": {
     "better-sqlite3@13.0.3": true,
