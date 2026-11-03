@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json --noEmit",
+    "bundle:desktop": "node scripts/bundle-desktop.mjs",
     "test:db": "vitest run tests/db.test.ts",
     "test:ingest": "vitest run tests/ingest.test.ts",
     "test:fingerprint": "vitest run tests/fingerprint.test.ts",
@@ -35,6 +36,7 @@
     "@types/node": "26.6.6",
     "@types/cors": "2.8.19",
     "@types/multer": "2.3.0",
-    "@types/better-sqlite3": "9.6.0"
+    "@types/better-sqlite3": "9.6.0",
+    "esbuild": "0.28.2"
   }
 }

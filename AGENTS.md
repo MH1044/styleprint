@@ -55,6 +55,17 @@ gate in sequence — run it before considering a change done. The frontend has o
 Playwright smoke test (`web/e2e/smoke.spec.ts`) that walks the full user journey in
 mock mode; update it when a screen's `data-testid` attributes change.
 
+## Desktop build (src-tauri/)
+
+`npm run desktop:build` bundles the server (`server/scripts/bundle-desktop.mjs`,
+esbuild → single ESM file) and runs `tauri build` to produce Windows installers. The
+Rust shell (`src-tauri/src/main.rs`) does not reimplement any app logic — it spawns
+the bundled server and points a window at it. If you change how `server/src` resolves
+its own file locations (prompts/, the web build, the app token — all computed from
+`import.meta.url`), re-run `npm run bundle:desktop -w server` and smoke-test the
+`.exe` directly before assuming it still works; a green `tsc`/`vitest` run does not
+exercise the bundled/packaged code path. See `DECISIONS.md` #31-37.
+
 ## Data and privacy
 
 Nothing in `~/.voicebox/` (or `$VOICEBOX_HOME` when set) should ever be logged,

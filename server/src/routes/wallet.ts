@@ -9,7 +9,13 @@ import { PublikPaymentError } from "@voicebox/shared";
 export const walletRouter = Router();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const APP_TOKEN_PATH = path.resolve(__dirname, "../../../publik-app-token.txt");
+
+// Source tree (server/src/routes -> repo root) or the desktop bundle, where
+// bundle-desktop.mjs copies the token next to the single bundled file.
+const APP_TOKEN_PATH = [
+  path.resolve(__dirname, "../../../publik-app-token.txt"),
+  path.resolve(__dirname, "publik-app-token.txt"),
+].find((p) => fs.existsSync(p)) ?? path.resolve(__dirname, "../../../publik-app-token.txt");
 
 /** Drives the first-run card: does the app already have a usable credential? */
 walletRouter.get("/credential-status", (_req, res) => {

@@ -91,6 +91,37 @@ Every AI call resolves credentials in this order, enforced in
 
 `VOICEBOX_MOCK=1` short-circuits all of this.
 
+## Desktop installer (Windows)
+
+Voicebox also builds as a real installable desktop app via [Tauri](https://tauri.app):
+a native window that spawns the same Express server this repo already has, waits for
+it to come up, and points the window at it. No browser tab, no terminal, no typing
+`npm run dev` — just an installer and a Start Menu entry.
+
+Requirements beyond the web-app path: a Rust toolchain (`rustc`/`cargo`) and, for now,
+**Node.js must already be installed on the machine the installer runs on** — the
+installer bundles the server's own code but still launches it with `node` from PATH
+(see `DECISIONS.md` #33 for the follow-up that would remove this requirement).
+
+```
+npm install
+npm run desktop:build
+```
+
+This builds the web frontend, bundles the server into a single file
+(`server/scripts/bundle-desktop.mjs`), and runs `tauri build`. Installers land in
+`src-tauri/target/release/bundle/`:
+
+- `nsis/Voicebox_<version>_x64-setup.exe`
+- `msi/Voicebox_<version>_x64_en-US.msi`
+
+Both install a normal Windows app: Start Menu entry, uninstaller, no admin terminal
+required. Data still lives in `~/.voicebox/` on whichever machine it's installed on —
+see "Credential order" below; nothing about the desktop wrap changes where data lives.
+
+To regenerate the app icon from a new source image:
+`npm run desktop:icon` (reads `src-tauri/icons/icon-source.png`).
+
 ## Development
 
 - `npm run dev` — server + web together.
