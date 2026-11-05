@@ -3,10 +3,16 @@
 This file is for any coding agent (human-directed or automated) working on Styleprint.
 
 ## publik API
+- Base URL: https://publikhq.com/api/v1 (OpenAI Chat Completions, Responses, Anthropic Messages)
+- Models: publik-fast, publik-balanced, publik-smart only; never a vendor model name
+- Key: per-install `pk_` from POST /installs, stored at the publik credential path; env PUBLIK_API_KEY / PUBLIK_API_BASE_URL override
+- App token: publik-app-token.txt (public by design, committed) or PUBLIK_APP_TOKEN
+- 402: show error.message plus error.top_up_url only
+- Never print or log a key
+- Docs: https://publikhq.com/llms.txt, https://publikhq.com/developers, https://publikhq.com/skills/api.md
 
-Styleprint bills AI usage through [publik](https://publikhq.com/developers), a metered
-LLM gateway. The humanising logic lives in this repo's prompts and style model; publik
-only supplies model calls and billing.
+Listed at https://publikhq.com/styleprint (slug `styleprint`). Products enabled:
+`ai.chat`, `ai.embeddings`.
 
 **Setup prompt** (from publik's developer page, for a coding agent adding publik to a
 new surface in this app):
@@ -19,11 +25,14 @@ Add publik API to my app (publik slug: styleprint): ask for a tier slug (publik-
 
 1. The user's own key + base URL (from the credential file's `userKey`/`userBaseUrl`).
 2. `PUBLIK_API_KEY` / `PUBLIK_API_BASE_URL` environment variables.
-3. The per-install credential file's `installKey` (minted once via `POST /installs`
-   from the public `publik-app-token.txt`).
+3. The per-install credential file's `installKey` (minted via `POST /installs` from the
+   public `publik-app-token.txt`, using `provision()` in `server/src/ai/client.ts`).
 4. None of the above: the UI asks the user for their own key, or to run first-run
-   provisioning. See `README.md` for the manual token-mint step this build leaves to
-   a human (the real mint needs a browser approval step mid-flow).
+   provisioning.
+
+**Builder self-test**: `PUBLIK_SELF_TEST=1 "<built binary>"` prints `publik self-test:
+ok styleprint <version> (install <id>)` or a `failed: <message>` line, then exits — see
+`selfTest()` in `server/src/ai/client.ts` and https://publikhq.com/skills/setup.md.
 
 **Rules for any new AI call in this repo:**
 
