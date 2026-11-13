@@ -117,14 +117,15 @@ try {
   }
 
   if (binaries.length === 1) {
-    fs.copyFileSync(binaries[0], outFile);
+    install(binaries[0], outFile);
   } else {
-    execFileSync("lipo", ["-create", "-output", outFile, ...binaries]);
-    console.log(execFileSync("lipo", ["-info", outFile]).toString().trim());
+    const universal = path.join(work, "node-universal");
+    execFileSync("lipo", ["-create", "-output", universal, ...binaries]);
+    console.log(execFileSync("lipo", ["-info", universal]).toString().trim());
+    install(universal, outFile);
+    sources.forEach((source, i) => install(binaries[i], outputFor(source.triple)));
   }
-  fs.chmodSync(outFile, 0o755);
-  fs.writeFileSync(stampFile, `${NODE_VERSION}\n`);
-  console.log(`Node.js v${NODE_VERSION} for ${target} written to ${outFile}`);
+  console.log(`Node.js v${NODE_VERSION} for ${target} written to ${outputs.join(", ")}`);
 } finally {
   fs.rmSync(work, { recursive: true, force: true });
 }
