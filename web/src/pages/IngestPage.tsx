@@ -51,10 +51,13 @@ export default function IngestPage({ profileId, onReady }: { profileId: string; 
     if (!pasteText.trim()) return;
     setBusy(true);
     setError(null);
+    const submitted = { text: pasteText, title: pasteTitle };
     try {
-      await api.pasteText(profileId, pasteTitle || "Pasted text", pasteText, tag);
-      setPasteText("");
-      setPasteTitle("");
+      await api.pasteText(profileId, submitted.title || "Pasted text", submitted.text, tag);
+      // Only clear what was saved: if the user has already pasted the next
+      // sample while this one was saving, keep it.
+      setPasteText((current) => (current === submitted.text ? "" : current));
+      setPasteTitle((current) => (current === submitted.title ? "" : current));
       refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "could not save pasted text");

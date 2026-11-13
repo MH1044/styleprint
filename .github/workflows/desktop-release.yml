@@ -147,6 +147,14 @@ jobs:
 
           node scripts/e2e-installed.mjs "$app/Contents/MacOS/node" "$app/Contents/Resources/server/index.mjs"
 
+      - name: Keep the end-to-end trace if a check failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.platform }}
+          path: web/test-results
+          if-no-files-found: ignore
+
       - uses: actions/upload-artifact@v4
         with:
           name: styleprint-${{ matrix.platform }}
