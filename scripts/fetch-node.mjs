@@ -5,7 +5,10 @@
 //
 // Tauri expects one file per build target, named with the target triple:
 // src-tauri/binaries/node-<triple>[.exe]. A universal macOS build needs a
-// universal binary, made here by joining the arm64 and x64 builds with lipo.
+// universal binary, made here by joining the arm64 and x64 builds with lipo,
+// and also each single-architecture one: it compiles the app once per
+// architecture before joining them, and each of those builds checks for its
+// own sidecar.
 //
 // Usage: node scripts/fetch-node.mjs [--target <triple>]
 // Without --target, fetches for the host (what a plain `tauri build` makes).
@@ -26,14 +29,23 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const OUT_DIR = path.join(REPO_ROOT, "src-tauri", "binaries");
 
 const SOURCES = {
-  "x86_64-pc-windows-msvc": [{ file: "win-x64/node.exe" }],
-  "aarch64-apple-darwin": [{ file: `node-v${NODE_VERSION}-darwin-arm64.tar.gz` }],
-  "x86_64-apple-darwin": [{ file: `node-v${NODE_VERSION}-darwin-x64.tar.gz` }],
+  "x86_64-pc-windows-msvc": [{ file: "win-x64/node.exe", triple: "x86_64-pc-windows-msvc" }],
+  "aarch64-apple-darwin": [{ file: `node-v${NODE_VERSION}-darwin-arm64.tar.gz`, triple: "aarch64-apple-darwin" }],
+  "x86_64-apple-darwin": [{ file: `node-v${NODE_VERSION}-darwin-x64.tar.gz`, triple: "x86_64-apple-darwin" }],
   "universal-apple-darwin": [
-    { file: `node-v${NODE_VERSION}-darwin-arm64.tar.gz` },
-    { file: `node-v${NODE_VERSION}-darwin-x64.tar.gz` },
+    { file: `node-v${NODE_VERSION}-darwin-arm64.tar.gz`, triple: "aarch64-apple-darwin" },
+    { file: `node-v${NODE_VERSION}-darwin-x64.tar.gz`, triple: "x86_64-apple-darwin" },
   ],
 };
+
+const outputFor = (triple) => path.join(OUT_DIR, `node-${triple}${triple.includes("windows") ? ".exe" : ""}`);
+const isCurrent = (file) =>
+  fs.existsSync(file) && fs.existsSync(`${file}.version`) && fs.readFileSync(`${file}.version`, "utf8").trim() === NODE_VERSION;
+function install(from, to) {
+  fs.copyFileSync(from, to);
+  fs.chmodSync(to, 0o755);
+  fs.writeFileSync(`${to}.version`, `${NODE_VERSION}\n`);
+}
 
 function hostTriple() {
   const key = `${process.platform}-${process.arch}`;
@@ -86,9 +98,9 @@ const target = parseTarget(process.argv.slice(2));
 const sources = SOURCES[target];
 if (!sources) throw new Error(`unsupported target ${target}; expected one of ${Object.keys(SOURCES).join(", ")}`);
 
-const outFile = path.join(OUT_DIR, `node-${target}${target.includes("windows") ? ".exe" : ""}`);
-const stampFile = `${outFile}.version`;
-if (fs.existsSync(outFile) && fs.existsSync(stampFile) && fs.readFileSync(stampFile, "utf8").trim() === NODE_VERSION) {
+const outFile = outputFor(target);
+const outputs = [outFile, ...(sources.length > 1 ? sources.map((s) => outputFor(s.triple)) : [])];
+if (outputs.every(isCurrent)) {
   console.log(`Node.js v${NODE_VERSION} for ${target} already at ${outFile}`);
   process.exit(0);
 }
