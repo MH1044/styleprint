@@ -8,6 +8,8 @@ interface Span {
 }
 
 const PATTERNS: RegExp[] = [
+  // Markdown footnote references: "[^1]", "[^source]"
+  /\[\^[^\]\s]+\]/g,
   // Quarter + year: "Q3 2026"
   /\bQ[1-4]\s+\d{4}\b/g,
   // Month + year or month + day + year

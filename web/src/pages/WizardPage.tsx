@@ -5,7 +5,14 @@ import { wordDiff } from "../lib/diff.js";
 
 type Mode = "idle" | "steer" | "edit" | "blend";
 
-export default function WizardPage({ documentId, onDone }: { documentId: string; onDone: () => void }) {
+export default function WizardPage({
+  documentId,
+  onDone,
+}: {
+  documentId: string;
+  /** Called when the user moves on to the editor, with a message for it to show if there is one. */
+  onDone: (notice: string | null) => void;
+}) {
   const [queue, setQueue] = useState<ParagraphRecord[] | null>(null);
   const [mode, setMode] = useState<Mode>("idle");
   const [steerText, setSteerText] = useState("");
@@ -13,6 +20,23 @@ export default function WizardPage({ documentId, onDone }: { documentId: string;
   const [blendRatio, setBlendRatio] = useState(0.5);
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState<Awaited<ReturnType<typeof api.wizardSummary>> | null>(null);
+  const [finishing, setFinishing] = useState(false);
+
+  async function openInEditor() {
+    setFinishing(true);
+    try {
+      const { cardRefresh } = await api.finishWizard(documentId);
+      onDone(
+        cardRefresh.refreshed
+          ? `Your style card was updated from your last ${cardRefresh.decisionsUsed} review decisions, so the next rewrite should need fewer corrections.`
+          : cardRefresh.error
+            ? `Your style card couldn't be updated from your corrections this time (${cardRefresh.error}). It will try again next time you finish a review.`
+            : null
+      );
+    } finally {
+      setFinishing(false);
+    }
+  }
 
   const refresh = useCallback(() => {
     api.getQueue(documentId).then((r) => setQueue(r.queue));
@@ -110,13 +134,27 @@ export default function WizardPage({ documentId, onDone }: { documentId: string;
           <li>Retried: {summary.counts.retry ?? 0}</li>
           <li>Blended: {summary.counts.blend ?? 0}</li>
           <li>Final voice match: {summary.voiceMatch ?? "—"}</li>
+          {summary.remaining > 0 && <li>Skipped: {summary.remaining} (you can come back to them from the Wizard step)</li>}
         </ul>
+        {summary.learning && (
+          <p className="text-sm text-stone-500" data-testid="learning-status">
+            {summary.learning.decisionsLogged} review decision{summary.learning.decisionsLogged === 1 ? "" : "s"} logged for this
+            voice.{" "}
+            {summary.learning.untilNextCardUpdate === 0
+              ? "Your style card will learn from them when you open the editor."
+              : `Your style card learns from them after ${summary.learning.untilNextCardUpdate} more.`}
+            {summary.learning.allowedWords.length > 0 && ` Words you've kept: ${summary.learning.allowedWords.join(", ")}.`}
+            {summary.learning.favouritePhrases.length > 0 &&
+              ` Phrases you reach for: ${summary.learning.favouritePhrases.map((p) => `"${p}"`).join(", ")}.`}
+          </p>
+        )}
         <button
-          onClick={onDone}
-          className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white"
+          onClick={openInEditor}
+          disabled={finishing}
+          className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
           data-testid="open-in-editor"
         >
-          Open in editor
+          {finishing ? "Opening…" : "Open in editor"}
         </button>
       </div>
     );
@@ -146,7 +184,16 @@ export default function WizardPage({ documentId, onDone }: { documentId: string;
     <div className="space-y-4" data-testid="wizard-card">
       <div className="flex items-center justify-between text-sm text-stone-500">
         <span>{queue.length} left to review</span>
-        <span>Keys: 1 keep · 2 revert · 3 try again · 4 edit · 5 blend</span>
+        <span className="flex items-center gap-3">
+          <span>Keys: 1 keep · 2 revert · 3 try again · 4 edit · 5 blend</span>
+          <button
+            onClick={async () => setSummary(await api.wizardSummary(documentId))}
+            className="text-xs underline"
+            data-testid="skip-rest"
+          >
+            Skip the rest
+          </button>
+        </span>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

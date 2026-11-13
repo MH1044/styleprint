@@ -145,6 +145,12 @@ export function mockChatCompletion(request: ChatCompletionRequest): ChatCompleti
     };
   }
 
+  // The refreshed card is built locally from the user's corrections
+  // (learning/index.ts); mock mode returns that local version unchanged.
+  if (kind === "style-card-refresh") {
+    return { text: request.mock?.reply ?? mockStyleCard(), usage: mockUsage(request) };
+  }
+
   const paragraph = extractParagraph(request.mock, request.prompt);
   const rewritten = mockRewrite(paragraph);
 

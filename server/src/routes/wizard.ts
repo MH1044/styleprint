@@ -16,7 +16,9 @@ import { protectParagraph, stripKeepMarkers } from "../pipeline/protect.js";
 import { nearestParagraphs } from "../embeddings/index.js";
 import { blendParagraphs } from "../pipeline/blend.js";
 import { computeStyleProfile, voiceMatchScore } from "../fingerprint/index.js";
-import type { ParagraphRecord } from "@styleprint/shared";
+import type { DecisionAction, ParagraphRecord, Provenance } from "@styleprint/shared";
+import { effectiveTargets, learnFromDecision, learningStatus, refreshStyleCardIfDue } from "../learning/index.js";
+import { ensureEditorDoc, saveVersion, syncWizardChange } from "../document/service.js";
 
 export const wizardRouter = Router();
 
@@ -60,6 +62,29 @@ function loadParagraphOr404(db: ReturnType<typeof getDb>, id: string, res: impor
   return paragraph;
 }
 
+function currentText(p: ParagraphRecord): string {
+  return p.final ?? p.pass2 ?? p.original;
+}
+
+/**
+ * Everything a decision that changed a paragraph's text sets off: the voice
+ * learns from it, and an editor document that already exists gets the new text.
+ */
+function afterDecision(
+  db: ReturnType<typeof getDb>,
+  documentId: string,
+  paragraph: ParagraphRecord,
+  action: DecisionAction,
+  after: string,
+  provenance: Provenance
+) {
+  const document = getDocument(db, documentId);
+  if (!document) return;
+  const before = currentText(paragraph);
+  learnFromDecision(db, document.profileId, { action, original: paragraph.original, before, after });
+  if (after !== before) syncWizardChange(db, documentId, paragraph.id, before, after, provenance);
+}
+
 wizardRouter.post("/:documentId/paragraphs/:paragraphId/keep", (req, res) => {
   const db = getDb();
   const paragraph = loadParagraphOr404(db, req.params.paragraphId, res);
@@ -73,6 +98,7 @@ wizardRouter.post("/:documentId/paragraphs/:paragraphId/revert", (req, res) => {
   const db = getDb();
   const paragraph = loadParagraphOr404(db, req.params.paragraphId, res);
   if (!paragraph) return;
+  afterDecision(db, req.params.documentId, paragraph, "revert", paragraph.original, "reverted");
   updateParagraph(db, paragraph.id, { final: paragraph.original, status: "done" });
   createDecision(db, { documentId: req.params.documentId, paragraphId: paragraph.id, action: "revert", steer: null });
   res.json({ ok: true, final: paragraph.original });
@@ -87,6 +113,7 @@ wizardRouter.post("/:documentId/paragraphs/:paragraphId/edit", (req, res) => {
     res.status(400).json({ error: { message: "text is required" } });
     return;
   }
+  afterDecision(db, req.params.documentId, paragraph, "edit", text, "hand-edited");
   updateParagraph(db, paragraph.id, { final: text, status: "done" });
   createDecision(db, { documentId: req.params.documentId, paragraphId: paragraph.id, action: "edit", steer: null });
   res.json({ ok: true, final: text });
@@ -99,6 +126,7 @@ wizardRouter.post("/:documentId/paragraphs/:paragraphId/blend", (req, res) => {
   const ratio = typeof req.body?.ratio === "number" ? req.body.ratio : 0.5;
   const rewritten = paragraph.final ?? paragraph.pass2 ?? paragraph.original;
   const blended = blendParagraphs(paragraph.original, rewritten, ratio);
+  afterDecision(db, req.params.documentId, paragraph, "blend", blended, blended === paragraph.original ? "original" : "hand-edited");
   updateParagraph(db, paragraph.id, { final: blended, status: "done" });
   createDecision(db, {
     documentId: req.params.documentId,
@@ -137,12 +165,13 @@ wizardRouter.post("/:documentId/paragraphs/:paragraphId/retry", async (req, res)
     const pass2 = await runPass2({
       paragraph: paragraph.pass1 ?? protectedText,
       styleCard: profile.styleCard,
-      targets: profile.styleJson.targets,
+      targets: effectiveTargets(profile.styleJson.targets, profile.learning),
       retrievedExamples: retrieved.map((r) => r.text),
       retrySuffix,
     });
 
     const finalText = stripKeepMarkers(pass2.text);
+    afterDecision(db, document.id, paragraph, "retry", finalText, "rewritten");
     updateParagraph(db, paragraph.id, {
       pass2: finalText,
       final: finalText,
@@ -188,5 +217,25 @@ wizardRouter.get("/:documentId/summary", (req, res) => {
     totalDecisions: decisions.length,
     voiceMatch,
     remaining: queueOrder(paragraphs, decidedSet).length,
+    learning: profile ? learningStatus(db, profile) : null,
   });
+});
+
+/**
+ * Leaving the wizard for the editor: builds the editor's document from the
+ * wizard's results the first time, saves a "Wizard finished" version (Stage
+ * 5: every wizard exit is a named snapshot), and refreshes the style card if
+ * enough decisions have built up since it last learned from them.
+ */
+wizardRouter.post("/:documentId/finish", async (req, res) => {
+  const db = getDb();
+  const document = getDocument(db, req.params.documentId);
+  if (!document) {
+    res.status(404).json({ error: { message: "document not found" } });
+    return;
+  }
+  const { doc } = ensureEditorDoc(db, document);
+  saveVersion(db, document.id, "Wizard finished", doc, { onlyIfChanged: true });
+  const cardRefresh = await refreshStyleCardIfDue(db, document.profileId);
+  res.json({ cardRefresh });
 });

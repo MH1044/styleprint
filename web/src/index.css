@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+/* Footnote references, numbered in reading order (see editor/footnote.ts). */
+.ProseMirror {
+  counter-reset: footnote;
+}
+.ProseMirror sup.footnote-ref {
+  counter-increment: footnote;
+  cursor: pointer;
+  color: #b45309;
+  font-weight: 600;
+}
+.ProseMirror sup.footnote-ref::after {
+  content: "[" counter(footnote) "]";
+}
+.ProseMirror sup.footnote-ref.ProseMirror-selectednode {
+  outline: 2px solid #f59e0b;
+  border-radius: 2px;
+}

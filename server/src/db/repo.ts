@@ -16,7 +16,10 @@ import type {
   ModelTier,
   StyleProfile,
   UnsureSpan,
+  ProfileLearning,
+  VersionSummary,
 } from "@styleprint/shared";
+import { emptyLearning } from "@styleprint/shared";
 
 interface ProfileRow {
   id: string;
@@ -25,6 +28,11 @@ interface ProfileRow {
   style_json: string | null;
   style_card: string | null;
   lora_path: string | null;
+  learned_json: string | null;
+}
+
+function parseLearning(json: string | null): ProfileLearning {
+  return { ...emptyLearning(), ...(json ? (JSON.parse(json) as Partial<ProfileLearning>) : {}) };
 }
 
 function rowToProfile(r: ProfileRow): Profile {
@@ -35,6 +43,7 @@ function rowToProfile(r: ProfileRow): Profile {
     styleJson: r.style_json ? (JSON.parse(r.style_json) as StyleProfile) : null,
     styleCard: r.style_card,
     loraPath: r.lora_path,
+    learning: parseLearning(r.learned_json),
   };
 }
 
@@ -44,7 +53,7 @@ export function createProfile(db: Database.Database, name: string): Profile {
   db.prepare(
     `INSERT INTO profiles (id, name, created_at, style_json, style_card, lora_path) VALUES (?, ?, ?, NULL, NULL, NULL)`
   ).run(id, name, createdAt);
-  return { id, name, createdAt, styleJson: null, styleCard: null, loraPath: null };
+  return { id, name, createdAt, styleJson: null, styleCard: null, loraPath: null, learning: emptyLearning() };
 }
 
 export function getProfile(db: Database.Database, id: string): Profile | null {
@@ -68,6 +77,14 @@ export function updateProfileStyle(
     styleCard,
     id
   );
+}
+
+export function updateProfileStyleCard(db: Database.Database, id: string, styleCard: string): void {
+  db.prepare(`UPDATE profiles SET style_card = ? WHERE id = ?`).run(styleCard, id);
+}
+
+export function updateProfileLearning(db: Database.Database, id: string, learning: ProfileLearning): void {
+  db.prepare(`UPDATE profiles SET learned_json = ? WHERE id = ?`).run(JSON.stringify(learning), id);
 }
 
 interface SampleRow {
@@ -345,6 +362,31 @@ export function listDecisionsByDocument(db: Database.Database, documentId: strin
   }));
 }
 
+/** Every decision logged against any of the profile's documents, oldest first. */
+export function listDecisionsByProfile(db: Database.Database, profileId: string): Decision[] {
+  const rows = db
+    .prepare(
+      `SELECT d.* FROM decisions d JOIN documents doc ON doc.id = d.document_id
+       WHERE doc.profile_id = ? ORDER BY d.created_at ASC, d.rowid ASC`
+    )
+    .all(profileId) as {
+    id: string;
+    document_id: string;
+    paragraph_id: string;
+    action: DecisionAction;
+    steer: string | null;
+    created_at: string;
+  }[];
+  return rows.map((r) => ({
+    id: r.id,
+    documentId: r.document_id,
+    paragraphId: r.paragraph_id,
+    action: r.action,
+    steer: r.steer,
+    createdAt: r.created_at,
+  }));
+}
+
 export function createVersion(
   db: Database.Database,
   input: { documentId: string; label: string; editorJson: unknown }
@@ -363,7 +405,7 @@ export function createVersion(
 
 export function listVersionsByDocument(db: Database.Database, documentId: string): VersionRecord[] {
   const rows = db
-    .prepare(`SELECT * FROM versions WHERE document_id = ? ORDER BY created_at DESC`)
+    .prepare(`SELECT * FROM versions WHERE document_id = ? ORDER BY created_at DESC, rowid DESC`)
     .all(documentId) as { id: string; document_id: string; label: string; editor_json: string; created_at: string }[];
   return rows.map((r) => ({
     id: r.id,
@@ -372,6 +414,24 @@ export function listVersionsByDocument(db: Database.Database, documentId: string
     editorJson: JSON.parse(r.editor_json),
     createdAt: r.created_at,
   }));
+}
+
+export function listVersionSummaries(db: Database.Database, documentId: string): VersionSummary[] {
+  return db
+    .prepare(
+      `SELECT id, document_id AS documentId, label, created_at AS createdAt FROM versions
+       WHERE document_id = ? ORDER BY created_at DESC, rowid DESC`
+    )
+    .all(documentId) as VersionSummary[];
+}
+
+export function getVersion(db: Database.Database, documentId: string, id: string): VersionRecord | null {
+  const r = db.prepare(`SELECT * FROM versions WHERE id = ? AND document_id = ?`).get(id, documentId) as
+    | { id: string; document_id: string; label: string; editor_json: string; created_at: string }
+    | undefined;
+  return r
+    ? { id: r.id, documentId: r.document_id, label: r.label, editorJson: JSON.parse(r.editor_json), createdAt: r.created_at }
+    : null;
 }
 
 export function createSpend(

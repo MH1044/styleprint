@@ -9,7 +9,29 @@ export interface Profile {
   styleJson: StyleProfile | null;
   styleCard: string | null;
   loraPath: string | null;
+  learning: ProfileLearning;
 }
+
+/** What a voice has learned from the user's wizard decisions (Stage 4, "Learning from decisions"). */
+export interface ProfileLearning {
+  /** Avoid-list words the user restored by reverting a rewrite that removed them. */
+  allowedWords: string[];
+  /** Phrases the user added in three or more separate edits. */
+  favouritePhrases: string[];
+  /** How many separate edits added each candidate phrase. */
+  phraseCounts: Record<string, number>;
+  /** The profile's decision count when the style card last absorbed them. */
+  decisionsAtLastCardUpdate: number;
+  cardUpdatedAt: string | null;
+}
+
+/** A fresh, empty learning record (a new object each call, safe to mutate). */
+export function emptyLearning(): ProfileLearning {
+  return { allowedWords: [], favouritePhrases: [], phraseCounts: {}, decisionsAtLastCardUpdate: 0, cardUpdatedAt: null };
+}
+
+/** The style card is refreshed from the user's corrections after every this many decisions. */
+export const DECISIONS_PER_CARD_UPDATE = 20;
 
 export interface Sample {
   id: string;
@@ -75,6 +97,23 @@ export interface VersionRecord {
   editorJson: unknown;
   createdAt: string;
 }
+
+export type VersionSummary = Omit<VersionRecord, "editorJson">;
+
+/**
+ * A node of the editor's document tree: Tiptap/ProseMirror JSON. The editor
+ * is the source of truth for a document once it has opened; every export is
+ * rendered from this tree.
+ */
+export interface DocNode {
+  type: string;
+  attrs?: Record<string, unknown>;
+  content?: DocNode[];
+  text?: string;
+  marks?: { type: string; attrs?: Record<string, unknown> }[];
+}
+
+export type Provenance = "original" | "rewritten" | "reverted" | "hand-edited";
 
 export type ModelTier = "publik-fast" | "publik-balanced" | "publik-smart";
 
@@ -143,12 +182,14 @@ export interface AiUsageHeaders {
   resetAt: string | null;
 }
 
-export type MockKind = "pass1" | "pass2" | "tag" | "style-card" | "generic";
+export type MockKind = "pass1" | "pass2" | "tag" | "style-card" | "style-card-refresh" | "generic";
 
 export interface MockHint {
   kind: MockKind;
   /** The paragraph being rewritten, used only by mock mode to build a deterministic reply. */
   paragraph?: string;
+  /** For "style-card-refresh": the locally built card that mock mode returns as-is. */
+  reply?: string;
 }
 
 export interface ChatCompletionRequest {

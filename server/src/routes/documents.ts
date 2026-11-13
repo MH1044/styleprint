@@ -10,7 +10,11 @@ import {
   updateParagraph,
   updateDocumentEditorJson,
   createSpend,
+  getVersion,
+  listVersionSummaries,
 } from "../db/repo.js";
+import { effectiveStyleProfile } from "../learning/index.js";
+import { currentEditorDoc, ensureEditorDoc, isDocNode, restoreVersion, saveVersion } from "../document/service.js";
 import { runPipeline } from "../pipeline/run.js";
 import { chatCompletion } from "../ai/client.js";
 import { computeStyleProfile, voiceMatchScore } from "../fingerprint/index.js";
@@ -71,7 +75,7 @@ documentsRouter.post("/:id/rewrite", async (req, res) => {
     const result = await runPipeline({
       documentId: document.id,
       draftText: document.draftText,
-      profile: { styleJson: profile.styleJson, styleCard: profile.styleCard },
+      profile: { styleJson: effectiveStyleProfile(profile.styleJson, profile.learning), styleCard: profile.styleCard },
       corpusParagraphs: corpusChunks,
       highFidelity,
     });
@@ -169,6 +173,62 @@ documentsRouter.post("/:id/voice-check", (req, res) => {
   res.json({ score, furthest: deltas.slice(0, 3) });
 });
 
+/** The editor's document, built from the draft and the wizard's results the first time it is asked for. */
+documentsRouter.get("/:id/editor", (req, res) => {
+  const db = getDb();
+  const document = getDocument(db, req.params.id);
+  if (!document) {
+    res.status(404).json({ error: { message: "document not found" } });
+    return;
+  }
+  res.json({ editorJson: ensureEditorDoc(db, document).doc });
+});
+
+documentsRouter.get("/:id/versions", (req, res) => {
+  const db = getDb();
+  if (!getDocument(db, req.params.id)) {
+    res.status(404).json({ error: { message: "document not found" } });
+    return;
+  }
+  res.json(listVersionSummaries(db, req.params.id));
+});
+
+documentsRouter.get("/:id/versions/:versionId", (req, res) => {
+  const version = getVersion(getDb(), req.params.id, req.params.versionId);
+  if (!version) {
+    res.status(404).json({ error: { message: "version not found" } });
+    return;
+  }
+  res.json(version);
+});
+
+documentsRouter.post("/:id/versions", (req, res) => {
+  const db = getDb();
+  const document = getDocument(db, req.params.id);
+  if (!document) {
+    res.status(404).json({ error: { message: "document not found" } });
+    return;
+  }
+  const label = typeof req.body?.label === "string" && req.body.label.trim() ? req.body.label.trim().slice(0, 120) : "Saved version";
+  const version = saveVersion(db, document.id, label, currentEditorDoc(db, document));
+  res.status(201).json(version);
+});
+
+documentsRouter.post("/:id/versions/:versionId/restore", (req, res) => {
+  const db = getDb();
+  const document = getDocument(db, req.params.id);
+  if (!document) {
+    res.status(404).json({ error: { message: "document not found" } });
+    return;
+  }
+  const restored = restoreVersion(db, document, req.params.versionId);
+  if (!restored) {
+    res.status(404).json({ error: { message: "version not found" } });
+    return;
+  }
+  res.json({ editorJson: restored.doc });
+});
+
 documentsRouter.put("/:id/editor", (req, res) => {
   const db = getDb();
   const document = getDocument(db, req.params.id);
@@ -177,6 +237,10 @@ documentsRouter.put("/:id/editor", (req, res) => {
     return;
   }
   const editorJson = req.body?.editorJson;
+  if (!isDocNode(editorJson)) {
+    res.status(400).json({ error: { message: "editorJson must be an editor document" } });
+    return;
+  }
   const voiceMatch = typeof req.body?.voiceMatch === "number" ? req.body.voiceMatch : null;
   updateDocumentEditorJson(db, document.id, editorJson, voiceMatch);
   res.json({ ok: true });

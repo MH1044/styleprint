@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { PDFDocument, StandardFonts } from "pdf-lib";
+import mammoth from "mammoth";
 
 const SAMPLE_ONE = `Look, I didn't think I'd ever enjoy fixing things around the house, but here we are. The garbage disposal died on a Sunday and every plumber in town was closed, so I pulled up a video and found the reset button myself. Four minutes. I'd been avoiding that unit for two years out of pure dread.
 
@@ -19,11 +20,15 @@ The basil did fine. The basil always does fine, which is maybe the most annoying
 
 Next year I'm moving everything two beds over and putting up a cheap shade cloth. Not because I read it somewhere, but because I'm tired of losing the same argument with the same patch of dirt.`;
 
-const DRAFT = `In today's fast-paced world, remote collaboration tools have become increasingly crucial for distributed teams. It is important to note that Northwind Logistics, headquartered in Denver, reported that 54% of its 800 employees now work remotely at least three days a week as of Q2 2026.
+const DRAFT = `## Remote work at Northwind
+
+In today's fast-paced world, remote collaboration tools have become increasingly crucial for distributed teams. It is important to note that Northwind Logistics, headquartered in Denver, reported that 54% of its 800 employees now work remotely at least three days a week as of Q2 2026.[^1]
 
 Moreover, the company invested $1.4 million in new video conferencing infrastructure across its 9 regional offices. Additionally, leadership emphasized that productivity rose by 11% following the rollout, while employee turnover dropped by 6% year over year.
 
-The leadership team, led by CEO Priya Nair, plans to share a follow-up report in Q4 2026 covering the next phase of the initiative.`;
+The leadership team, led by CEO Priya Nair, plans to share a follow-up report in Q4 2026 covering the next phase of the initiative.
+
+[^1]: Northwind Logistics staff survey, June 2026.`;
 
 test("full flow: profile -> ingest -> rewrite -> wizard -> editor -> export", async ({ page, request }) => {
   await page.goto("/");
@@ -38,12 +43,12 @@ test("full flow: profile -> ingest -> rewrite -> wizard -> editor -> export", as
 
   await page.getByTestId("paste-textarea").fill(SAMPLE_ONE);
   await page.getByTestId("paste-submit").click();
-  await expect(page.getByText(/words ingested/)).toBeVisible();
+  await expect(page.getByText("Samples (1)")).toBeVisible({ timeout: 15_000 });
 
   await page.getByTestId("paste-textarea").fill(SAMPLE_TWO);
   await page.getByTestId("paste-submit").click();
 
-  await expect(page.getByText("Samples (2)")).toBeVisible();
+  await expect(page.getByText("Samples (2)")).toBeVisible({ timeout: 15_000 });
 
   // A real PDF upload: PDF text extraction is loaded on first use, so this is
   // the step that proves it works in a packaged build, not just in the repo.
@@ -67,49 +72,89 @@ test("full flow: profile -> ingest -> rewrite -> wizard -> editor -> export", as
 
   await page.getByTestId("go-to-wizard").click();
 
-  // --- Wizard: keep everything until the summary shows ---
-  await expect(page.getByTestId("wizard-card").or(page.getByTestId("wizard-summary"))).toBeVisible({
-    timeout: 10_000,
-  });
-  for (let i = 0; i < 10; i++) {
-    if (await page.getByTestId("wizard-summary").isVisible()) break;
-    try {
-      await page.getByTestId("action-keep").click({ timeout: 3_000 });
-    } catch {
-      break;
-    }
-    await page.waitForTimeout(500);
-  }
-  await expect(page.getByTestId("wizard-summary")).toBeVisible({ timeout: 15_000 });
+  // --- Wizard: keep the first card, then skip the rest ---
+  await expect(page.getByTestId("wizard-card")).toBeVisible({ timeout: 10_000 });
+  await page.getByTestId("action-keep").click();
+  await expect(page.getByText(/2 left to review/)).toBeVisible();
+  await page.getByTestId("skip-rest").click();
+  await expect(page.getByTestId("wizard-summary")).toBeVisible();
+  await expect(page.getByText("Skipped: 2")).toBeVisible();
+  await expect(page.getByTestId("learning-status")).toContainText("1 review decision logged");
   await page.getByTestId("open-in-editor").click();
 
-  // --- Editor ---
-  await expect(page.getByTestId("editor-content")).toBeVisible();
+  // --- Editor: the draft's heading and footnote are there ---
+  const editor = page.locator("[data-testid=editor-content] .ProseMirror");
+  await expect(editor.locator("h2")).toHaveText("Remote work at Northwind");
+  await expect(page.getByTestId("footnote-text-1")).toHaveValue("Northwind Logistics staff survey, June 2026.");
+
   await page.getByTestId("voice-check").click();
   await expect(page.getByTestId("voice-check-score")).toBeVisible({ timeout: 10_000 });
-
   await page.getByTestId("heat-view-toggle").click();
 
+  // Type at the end of the last paragraph, then add a second footnote there.
+  await editor.locator("p").last().click();
+  await page.keyboard.press("End");
+  await page.keyboard.type(" Hand-typed closing line.");
+  await page.getByTestId("add-footnote").click();
+  await page.getByTestId("footnote-input").fill("Added in the editor.");
+  await page.getByTestId("footnote-insert").click();
+  await expect(page.getByTestId("footnote-text-2")).toHaveValue("Added in the editor.");
+
+  // --- Versions: save one, change the text, restore it ---
+  await page.getByTestId("versions-toggle").click();
+  const versions = page.getByTestId("version-item");
+  await expect(versions.filter({ hasText: "Wizard finished" })).toHaveCount(1);
+  await page.getByTestId("version-label").fill("Before trimming");
+  await page.getByTestId("save-version").click();
+  await expect(versions.filter({ hasText: "Before trimming" })).toHaveCount(1);
+
+  await editor.locator("p").last().click();
+  await page.keyboard.press("End");
+  await page.keyboard.type(" Temporary sentence.");
+  await versions.filter({ hasText: "Before trimming" }).getByTestId("version-compare").click();
+  await expect(page.getByTestId("version-compare-view")).toContainText("Temporary sentence.");
+  await versions.filter({ hasText: "Before trimming" }).getByTestId("version-restore").click();
+  await expect(editor).not.toContainText("Temporary sentence.");
+  await expect(editor).toContainText("Hand-typed closing line.");
+  await expect(versions.filter({ hasText: "Before restoring “Before trimming”" })).toHaveCount(1);
+
+  // --- Export: every format renders what the editor shows ---
   await page.getByTestId("open-export").click();
   await expect(page.getByTestId("export-dialog")).toBeVisible();
+  const href = async (format: string) => new URL((await page.getByTestId(`export-${format}`).getAttribute("href"))!, page.url()).toString();
 
-  const docxHref = await page.getByTestId("export-docx").getAttribute("href");
-  const mdHref = await page.getByTestId("export-md").getAttribute("href");
-  const pdfHref = await page.getByTestId("export-pdf").getAttribute("href");
-
-  expect(docxHref).toBeTruthy();
-  const docxResponse = await request.get(new URL(docxHref!, page.url()).toString());
-  expect(docxResponse.ok()).toBe(true);
-  expect(docxResponse.headers()["content-type"]).toContain("wordprocessingml");
-
-  const mdResponse = await request.get(new URL(mdHref!, page.url()).toString());
-  expect(mdResponse.ok()).toBe(true);
-  const mdBody = await mdResponse.text();
+  const md = await request.get(await href("md"));
+  expect(md.ok()).toBe(true);
+  const mdBody = await md.text();
   expect(mdBody).toContain("# E2E Draft");
+  expect(mdBody).toContain("## Remote work at Northwind");
+  expect(mdBody).toContain("Hand-typed closing line.[^2]");
+  expect(mdBody).not.toContain("Temporary sentence.");
+  expect(mdBody).toContain("[^1]: Northwind Logistics staff survey, June 2026.\n[^2]: Added in the editor.");
 
-  const pdfResponse = await request.get(new URL(pdfHref!, page.url()).toString());
-  expect(pdfResponse.ok()).toBe(true);
-  expect(pdfResponse.headers()["content-type"]).toContain("pdf");
+  const docx = await request.get(await href("docx"));
+  expect(docx.ok()).toBe(true);
+  expect(docx.headers()["content-type"]).toContain("wordprocessingml");
+  const { value: docxHtml } = await mammoth.convertToHtml({ buffer: Buffer.from(await docx.body()) });
+  expect(docxHtml).toContain("<h2>Remote work at Northwind</h2>");
+  expect(docxHtml).toContain("Hand-typed closing line.");
+  expect(docxHtml).toContain('<li id="footnote-1"><p>Northwind Logistics staff survey, June 2026.');
+  expect(docxHtml).toContain('<li id="footnote-2"><p>Added in the editor.');
+
+  const pdf = await request.get(await href("pdf"));
+  expect(pdf.ok()).toBe(true);
+  expect(pdf.headers()["content-type"]).toContain("pdf");
+
+  // A click in the app asks for a download, never an in-place view.
+  const download = await request.get(`${await href("pdf")}&download=1`);
+  expect(download.headers()["content-type"]).toBe("application/octet-stream");
+  expect(download.headers()["content-disposition"]).toContain('filename="E2E Draft.pdf"');
+
+  // Each export left a named version behind.
+  await page.getByRole("button", { name: "Close" }).click();
+  await page.getByTestId("versions-toggle").click();
+  await page.getByTestId("versions-toggle").click();
+  await expect(versions.filter({ hasText: "Exported as .md" })).toHaveCount(1);
 });
 
 /** A one-page PDF with the text laid out in wrapped lines, one block per paragraph. */

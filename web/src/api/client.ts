@@ -1,11 +1,28 @@
 import type {
+  DocNode,
   Profile,
   Sample,
   VoiceDocument,
   ParagraphRecord,
   PipelineRunResult,
   Tag,
+  VersionRecord,
+  VersionSummary,
 } from "@styleprint/shared";
+
+export interface LearningStatus {
+  decisionsLogged: number;
+  untilNextCardUpdate: number;
+  allowedWords: string[];
+  favouritePhrases: string[];
+  cardUpdatedAt: string | null;
+}
+
+export interface CardRefresh {
+  refreshed: boolean;
+  decisionsUsed: number;
+  error?: string;
+}
 
 const BASE = "/api";
 
@@ -87,8 +104,15 @@ export const api = {
       `/documents/${id}/voice-check`,
       { method: "POST", body: JSON.stringify({ text }) }
     ),
+  getEditor: (id: string) => request<{ editorJson: DocNode }>(`/documents/${id}/editor`),
   saveEditor: (id: string, editorJson: unknown, voiceMatch: number | null) =>
     request(`/documents/${id}/editor`, { method: "PUT", body: JSON.stringify({ editorJson, voiceMatch }) }),
+  listVersions: (id: string) => request<VersionSummary[]>(`/documents/${id}/versions`),
+  getVersion: (id: string, versionId: string) => request<VersionRecord>(`/documents/${id}/versions/${versionId}`),
+  saveVersion: (id: string, label: string) =>
+    request<VersionRecord>(`/documents/${id}/versions`, { method: "POST", body: JSON.stringify({ label }) }),
+  restoreVersion: (id: string, versionId: string) =>
+    request<{ editorJson: DocNode }>(`/documents/${id}/versions/${versionId}/restore`, { method: "POST" }),
 
   getQueue: (documentId: string) => request<{ queue: ParagraphRecord[]; total: number }>(`/wizard/${documentId}/queue`),
   keep: (documentId: string, paragraphId: string) =>
@@ -116,7 +140,10 @@ export const api = {
       totalDecisions: number;
       voiceMatch: number | null;
       remaining: number;
+      learning: LearningStatus | null;
     }>(`/wizard/${documentId}/summary`),
+  finishWizard: (documentId: string) =>
+    request<{ cardRefresh: CardRefresh }>(`/wizard/${documentId}/finish`, { method: "POST" }),
 
   exportUrl: (documentId: string, format: string, params: Record<string, string> = {}) => {
     const query = new URLSearchParams(params).toString();

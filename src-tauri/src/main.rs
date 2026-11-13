@@ -5,14 +5,15 @@
 // of app logic — the server is the app.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use tauri::{AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri::webview::DownloadEvent;
+use tauri::{AppHandle, Manager, RunEvent, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 /// The app's usual port. Keeping it fixed keeps the window's origin, and with
 /// it the UI's saved settings, the same from one launch to the next.
@@ -254,6 +255,29 @@ fn show_startup_error(window: &WebviewWindow, error: &StartupError) {
     ));
 }
 
+/// Exports are saved to the Downloads folder (with "(1)" and so on rather
+/// than overwriting), and the page is told where so it can say so. Without a
+/// download handler, macOS's WebKit never downloads a file at all.
+fn handle_download(saved_to: &Mutex<HashMap<String, PathBuf>>, webview: &Webview, event: DownloadEvent<'_>) -> bool {
+    match event {
+        DownloadEvent::Requested { url, destination } => {
+            saved_to.lock().unwrap().insert(url.to_string(), destination.clone());
+        }
+        DownloadEvent::Finished { url, path, success } => {
+            // macOS doesn't report the path on completion; it's the one chosen at the start.
+            let requested = saved_to.lock().unwrap().remove(url.as_str());
+            if let (true, Some(path)) = (success, path.or(requested)) {
+                let detail = serde_json::json!({ "path": path.display().to_string() });
+                let _ = webview.eval(format!(
+                    "window.dispatchEvent(new CustomEvent('styleprint:downloaded', {{ detail: {detail} }}));"
+                ));
+            }
+        }
+        _ => {}
+    }
+    true
+}
+
 fn main() {
     // Builder check for the publik API wiring: `PUBLIK_SELF_TEST=1 styleprint.exe`
     // runs the bundled server's own self-test and exits, no window. See
@@ -272,10 +296,12 @@ fn main() {
         .setup(|app| {
             app.manage(ServerProcess(Mutex::new(None)));
             let handle = app.handle().clone();
+            let downloads = Mutex::new(HashMap::new());
             let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title("Styleprint")
                 .inner_size(1200.0, 820.0)
-                .min_inner_size(800.0, 600.0);
+                .min_inner_size(800.0, 600.0)
+                .on_download(move |webview, event| handle_download(&downloads, &webview, event));
 
             match start_server(&handle) {
                 Ok(server) => {

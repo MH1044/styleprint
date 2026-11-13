@@ -1,3 +1,5 @@
+import type Database from "better-sqlite3";
+
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS profiles (
   id TEXT PRIMARY KEY,
@@ -5,7 +7,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at TEXT NOT NULL,
   style_json TEXT,
   style_card TEXT,
-  lora_path TEXT
+  lora_path TEXT,
+  learned_json TEXT
 );
 
 CREATE TABLE IF NOT EXISTS samples (
@@ -96,3 +99,21 @@ export const TABLES = [
   "versions",
   "spend",
 ] as const;
+
+/**
+ * Columns added after the first release. CREATE TABLE IF NOT EXISTS never
+ * alters a table that already exists, so a database created by an earlier
+ * version gets them here instead. Idempotent, run on every open.
+ */
+const ADDED_COLUMNS: { table: string; column: string; definition: string }[] = [
+  { table: "profiles", column: "learned_json", definition: "TEXT" },
+];
+
+export function migrate(db: Database.Database): void {
+  for (const { table, column, definition } of ADDED_COLUMNS) {
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+    if (!columns.some((c) => c.name === column)) {
+      db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`).run();
+    }
+  }
+}

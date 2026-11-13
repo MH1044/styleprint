@@ -21,12 +21,13 @@ function resolvePromptsDir(): string {
 
 const PROMPTS_DIR = resolvePromptsDir();
 
-export type PromptName = "pass1-deai" | "pass2-voice" | "style-card" | "postcheck-retry";
+export type PromptName = "pass1-deai" | "pass2-voice" | "style-card" | "style-card-refresh" | "postcheck-retry";
 
 const PROMPT_FILES: Record<PromptName, string> = {
   "pass1-deai": "pass1-deai.v1.md",
   "pass2-voice": "pass2-voice.v1.md",
   "style-card": "style-card.v1.md",
+  "style-card-refresh": "style-card-refresh.v1.md",
   "postcheck-retry": "postcheck-retry.v1.md",
 };
 

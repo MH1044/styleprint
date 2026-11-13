@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 import { dbPath, ensureDirs } from "../env.js";
-import { SCHEMA_SQL } from "./schema.js";
+import { SCHEMA_SQL, migrate } from "./schema.js";
 
 let db: Database.Database | null = null;
 
@@ -13,6 +13,7 @@ export function getDb(): Database.Database {
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA_SQL);
+  migrate(db);
   return db;
 }
 
@@ -21,6 +22,7 @@ export function openTestDb(): Database.Database {
   const testDb = new Database(":memory:");
   testDb.pragma("foreign_keys = ON");
   testDb.exec(SCHEMA_SQL);
+  migrate(testDb);
   return testDb;
 }
 

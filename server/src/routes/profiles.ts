@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getDb } from "../db/client.js";
 import { createProfile, listProfiles, getProfile, listSamplesByProfile, updateProfileStyle } from "../db/repo.js";
+import { rebuiltCard } from "../learning/index.js";
 import { computeStyleProfile } from "../fingerprint/index.js";
 import { generateStyleCard } from "../pipeline/styleCard.js";
 import { indexProfileEmbeddings } from "../embeddings/index.js";
@@ -76,9 +77,10 @@ profilesRouter.post("/:id/build-style", async (req, res) => {
 
   try {
     const cardResult = await generateStyleCard(styleJson, corpusParagraphs);
-    updateProfileStyle(db, profile.id, styleJson, cardResult.text);
+    const styleCard = rebuiltCard(db, profile, cardResult.text);
+    updateProfileStyle(db, profile.id, styleJson, styleCard);
     const indexResult = await indexProfileEmbeddings(db, profile.id);
-    res.json({ styleJson, styleCard: cardResult.text, embeddings: indexResult });
+    res.json({ styleJson, styleCard, embeddings: indexResult });
   } catch (err) {
     res.status(502).json({ error: { message: err instanceof Error ? err.message : "style card generation failed" } });
   }

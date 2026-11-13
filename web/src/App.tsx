@@ -38,6 +38,7 @@ export default function App() {
   const [view, setView] = useState<View>("profiles");
   const [profileId, setProfileId] = useState<string | null>(() => readStorage("styleprint.profileId"));
   const [documentId, setDocumentId] = useState<string | null>(() => readStorage("styleprint.documentId"));
+  const [editorNotice, setEditorNotice] = useState<string | null>(null);
 
   useEffect(() => writeStorage("styleprint.profileId", profileId), [profileId]);
   useEffect(() => writeStorage("styleprint.documentId", documentId), [documentId]);
@@ -59,7 +60,8 @@ export default function App() {
     setView("wizard");
   }
 
-  function goToEditor() {
+  function goToEditor(notice: string | null) {
+    setEditorNotice(notice);
     setView("editor");
   }
 
@@ -98,7 +100,9 @@ export default function App() {
           <RewritePage profileId={profileId} onDocumentCreated={onDocumentCreated} onRewritten={goToWizard} />
         )}
         {view === "wizard" && documentId && <WizardPage documentId={documentId} onDone={goToEditor} />}
-        {view === "editor" && documentId && <EditorPage documentId={documentId} />}
+        {view === "editor" && documentId && (
+          <EditorPage documentId={documentId} notice={editorNotice} onDismissNotice={() => setEditorNotice(null)} />
+        )}
       </main>
     </div>
   );

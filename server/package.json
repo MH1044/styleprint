@@ -12,8 +12,8 @@
     "test:fingerprint": "vitest run tests/fingerprint.test.ts",
     "test:ai": "vitest run tests/ai.test.ts",
     "test:embeddings": "vitest run tests/embeddings.test.ts",
-    "test:pipeline": "vitest run tests/pipeline.test.ts",
-    "test:export": "vitest run tests/export.test.ts",
+    "test:pipeline": "vitest run tests/pipeline.test.ts tests/learning.test.ts",
+    "test:export": "vitest run tests/export.test.ts tests/document.test.ts",
     "test:publik": "vitest run tests/publik.test.ts"
   },
   "dependencies": {
