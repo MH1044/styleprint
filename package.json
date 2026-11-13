@@ -25,8 +25,9 @@
     "test:publik": "npm run test:publik -w server",
     "test:e2e": "npm run test:e2e -w web",
     "check": "node scripts/check.mjs",
-    "desktop:build": "npm run build -w web && npm run bundle:desktop -w server && tauri build",
-    "desktop:icon": "tauri icon src-tauri/icons/icon-source.png -o src-tauri/icons"
+    "desktop:build": "npm run build -w web && npm run bundle:desktop -w server && npm run desktop:node && tauri build",
+    "desktop:icon": "tauri icon src-tauri/icons/icon-source.png -o src-tauri/icons",
+    "desktop:node": "node scripts/fetch-node.mjs"
   },
   "devDependencies": {
     "concurrently": "10.0.6",

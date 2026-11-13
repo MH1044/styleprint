@@ -1,6 +1,6 @@
 import path from "node:path";
 import mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
+import { extractPdfText } from "./pdf.js";
 import { stripMarkdownHeadings } from "./split.js";
 
 export type SupportedExt = ".txt" | ".md" | ".docx" | ".pdf";
@@ -25,16 +25,7 @@ export async function extractText(filename: string, buffer: Buffer): Promise<str
       const result = await mammoth.extractRawText({ buffer });
       return result.value;
     }
-    case ".pdf": {
-      const parser = new PDFParse({ data: new Uint8Array(buffer) });
-      try {
-        const result = await parser.getText();
-        // pdf-parse inserts "-- N of M --" page delimiters between pages;
-        // those are parser output, not content the user wrote.
-        return result.text.replace(/^\s*--\s*\d+\s*of\s*\d+\s*--\s*$/gim, "");
-      } finally {
-        await parser.destroy();
-      }
-    }
+    case ".pdf":
+      return extractPdfText(buffer);
   }
 }

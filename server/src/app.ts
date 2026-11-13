@@ -9,6 +9,7 @@ import { documentsRouter } from "./routes/documents.js";
 import { wizardRouter } from "./routes/wizard.js";
 import { exportRouter } from "./routes/export.js";
 import { walletRouter } from "./routes/wallet.js";
+import { instanceId } from "./env.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -36,7 +37,8 @@ export function createApp(): Express {
   app.use(express.json({ limit: "10mb" }));
 
   app.get("/health", (_req, res) => {
-    res.json({ ok: true });
+    const instance = instanceId();
+    res.json(instance ? { ok: true, instance } : { ok: true });
   });
 
   app.use("/api/profiles", profilesRouter);

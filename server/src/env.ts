@@ -30,6 +30,19 @@ export function ensureDirs(): void {
 
 export const PORT = Number(process.env.PORT ?? 3001);
 
+/**
+ * Interface to listen on. The desktop app sets 127.0.0.1 so a user's corpus
+ * and publik balance are never reachable from the local network; unset means
+ * Node's default (all interfaces), which `npm run dev`'s Vite proxy relies on.
+ */
+export function listenHost(): string | undefined {
+  return process.env.STYLEPRINT_HOST || undefined;
+}
+/** Set by the desktop shell so it can tell its own server apart from anything else on the port. */
+export function instanceId(): string | null {
+  return process.env.STYLEPRINT_INSTANCE || null;
+}
+
 export function isMockMode(): boolean {
   return process.env.STYLEPRINT_MOCK === "1";
 }

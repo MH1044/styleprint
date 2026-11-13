@@ -1,12 +1,14 @@
 name: Desktop Release
 
-# Builds the Tauri desktop installer for Windows and macOS (universal:
-# arm64 + x64 in one .dmg/.app). Triggers on a version tag, or manually via
-# workflow_dispatch for a test run without cutting a release.
+# Builds the Tauri desktop installers for Windows and macOS (universal:
+# arm64 + x64 in one .dmg/.app). Each ships its own Node.js runtime, so users
+# don't need one installed. Every installer is then installed on the runner
+# and the installed copy is checked for real, with no system Node.js on PATH,
+# before anything is uploaded or released. Triggers on a version tag, or
+# manually via workflow_dispatch for a test run without cutting a release.
 #
-# Unsigned on macOS for now (no Apple Developer account configured): the
-# built .app/.dmg will show Gatekeeper's "can't be opened" warning until a
-# user right-clicks -> Open once, or runs `xattr -cr`. See README.md.
+# macOS builds are ad-hoc signed, not notarized (no Apple Developer account):
+# Gatekeeper warns the first time the app is opened. See README.md.
 on:
   push:
     tags:
@@ -47,10 +49,10 @@ jobs:
       matrix:
         include:
           - platform: macos-latest
-            tauri-args: --target universal-apple-darwin
+            target: universal-apple-darwin
             rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
           - platform: windows-latest
-            tauri-args: ""
+            target: x86_64-pc-windows-msvc
             rust-targets: ""
     runs-on: ${{ matrix.platform }}
     steps:
@@ -67,7 +69,76 @@ jobs:
         with:
           name: server-resources
           path: src-tauri/resources
-      - run: npx tauri build ${{ matrix.tauri-args }}
+      # The Node.js runtime the app ships (a Tauri sidecar). For the universal
+      # macOS build this joins the arm64 and x64 runtimes with lipo.
+      - run: node scripts/fetch-node.mjs --target ${{ matrix.target }}
+      - run: npx tauri build --target ${{ matrix.target }}
+      - run: npx playwright install chromium
+
+      - name: Install and check the Windows installers
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          function Test-Installed([string]$exe) {
+            # System Node.js off PATH, so only the bundled runtime can work.
+            $savedPath = $env:PATH
+            $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+            $env:STYLEPRINT_SMOKE_TEST = '1'
+            try {
+              $p = Start-Process $exe -Wait -PassThru -NoNewWindow `
+                -RedirectStandardOutput "$env:RUNNER_TEMP\smoke-out.txt" -RedirectStandardError "$env:RUNNER_TEMP\smoke-err.txt"
+            } finally {
+              $env:PATH = $savedPath
+              Remove-Item Env:STYLEPRINT_SMOKE_TEST
+            }
+            Get-Content "$env:RUNNER_TEMP\smoke-out.txt", "$env:RUNNER_TEMP\smoke-err.txt"
+            if ($p.ExitCode -ne 0) { throw "smoke test failed for $exe (exit $($p.ExitCode))" }
+          }
+
+          $nsis = Get-ChildItem src-tauri/target -Recurse -Filter '*-setup.exe' | Where-Object FullName -like '*\bundle\nsis\*' | Select-Object -First 1
+          $msi = Get-ChildItem src-tauri/target -Recurse -Filter '*.msi' | Where-Object FullName -like '*\bundle\msi\*' | Select-Object -First 1
+
+          Write-Host "Installing $($nsis.Name)"
+          $p = Start-Process $nsis.FullName -ArgumentList '/S' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "NSIS installer exited $($p.ExitCode)" }
+          $nsisDir = "$env:LOCALAPPDATA\Styleprint"
+          Test-Installed "$nsisDir\styleprint.exe"
+
+          Write-Host "Installing $($msi.Name)"
+          $p = Start-Process msiexec -ArgumentList '/i', "`"$($msi.FullName)`"", '/qn', '/norestart' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "MSI installer exited $($p.ExitCode)" }
+          Test-Installed "$env:ProgramFiles\Styleprint\styleprint.exe"
+
+          node scripts/e2e-installed.mjs "$nsisDir\node.exe" "$nsisDir\server\index.mjs"
+          if ($LASTEXITCODE -ne 0) { throw "end-to-end test against the installed copy failed" }
+
+      - name: Install and check the macOS app
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          dmg=$(find src-tauri/target -path '*/bundle/dmg/*.dmg' | head -1)
+          mount="$RUNNER_TEMP/styleprint-dmg"
+          hdiutil attach -nobrowse -readonly -mountpoint "$mount" "$dmg"
+          cp -R "$mount/Styleprint.app" "$RUNNER_TEMP/"
+          hdiutil detach "$mount"
+          app="$RUNNER_TEMP/Styleprint.app"
+
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -dv "$app" 2>&1 | grep -E '^(Identifier|Signature|Format)'
+          lipo -info "$app/Contents/MacOS/styleprint" "$app/Contents/MacOS/node"
+
+          # System Node.js off PATH, so only the bundled runtime can work.
+          smoke() { env -i HOME="$HOME" TMPDIR="${TMPDIR:-/tmp}" PATH=/usr/bin:/bin STYLEPRINT_SMOKE_TEST=1 "$@"; }
+          smoke "$app/Contents/MacOS/styleprint"
+          if arch -x86_64 /usr/bin/true 2>/dev/null; then
+            echo "Intel (x86_64) half, under Rosetta 2:"
+            smoke arch -x86_64 "$app/Contents/MacOS/styleprint"
+          else
+            echo "::warning::Rosetta 2 is not available on this runner, so the Intel half of the universal app was not run."
+          fi
+
+          node scripts/e2e-installed.mjs "$app/Contents/MacOS/node" "$app/Contents/Resources/server/index.mjs"
+
       - uses: actions/upload-artifact@v4
         with:
           name: styleprint-${{ matrix.platform }}

@@ -18,25 +18,27 @@
   },
   "dependencies": {
     "@styleprint/shared": "0.1.0",
-    "express": "5.3.0",
-    "cors": "2.8.6",
-    "multer": "2.5.0",
+    "@thednp/dommatrix": "3.1.2",
     "better-sqlite3": "13.0.3",
+    "cors": "2.8.6",
     "docx": "9.15.1",
+    "express": "5.3.0",
     "mammoth": "1.13.0",
-    "pdf-parse": "2.4.5",
+    "multer": "2.5.0",
+    "openai": "7.47.0",
     "pdf-lib": "1.17.1",
-    "openai": "7.47.0"
+    "pdf-parse": "2.4.5",
+    "pdfjs-dist": "5.4.296"
   },
   "devDependencies": {
-    "typescript": "5.9.3",
-    "tsx": "4.23.15",
-    "vitest": "5.1.0",
-    "@types/express": "5.0.6",
-    "@types/node": "26.6.6",
-    "@types/cors": "2.8.19",
-    "@types/multer": "2.3.0",
     "@types/better-sqlite3": "9.6.0",
-    "esbuild": "0.28.2"
+    "@types/cors": "2.8.19",
+    "@types/express": "5.0.6",
+    "@types/multer": "2.3.0",
+    "@types/node": "26.6.6",
+    "esbuild": "0.28.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
   }
 }
