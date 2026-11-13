@@ -12,7 +12,7 @@ import { mockChatCompletion } from "./mock.js";
 
 /** Identifies this app to publik. Bump APP_VERSION when cutting a tagged release. */
 export const APP_SLUG = "styleprint";
-export const APP_VERSION = "0.1.0";
+export const APP_VERSION = "0.1.2";
 
 export type CredentialSource = "own-key" | "env" | "install-file";
 

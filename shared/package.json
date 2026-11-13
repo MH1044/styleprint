@@ -1,7 +1,7 @@
 {
   "name": "@styleprint/shared",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.2",
   "type": "module",
   "main": "./src/types.ts",
   "types": "./src/types.ts",

@@ -1,7 +1,7 @@
 {
   "name": "@styleprint/web",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@styleprint/shared": "0.1.0",
+    "@styleprint/shared": "0.1.2",
     "@tiptap/extension-table": "3.32.2",
     "@tiptap/pm": "3.32.2",
     "@tiptap/react": "3.32.2",

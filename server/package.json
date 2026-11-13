@@ -1,7 +1,7 @@
 {
   "name": "@styleprint/server",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.2",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -17,7 +17,7 @@
     "test:publik": "vitest run tests/publik.test.ts"
   },
   "dependencies": {
-    "@styleprint/shared": "0.1.0",
+    "@styleprint/shared": "0.1.2",
     "@thednp/dommatrix": "3.1.2",
     "better-sqlite3": "13.0.3",
     "cors": "2.8.6",

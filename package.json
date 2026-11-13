@@ -1,7 +1,7 @@
 {
   "name": "styleprint",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "AI Humaniser: rewrite AI drafts in the user's own voice, locally profiled, billed per use through publik.",
   "license": "AGPL-3.0-only",
   "engines": {

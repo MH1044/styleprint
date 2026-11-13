@@ -82,6 +82,8 @@ build plan needed a concrete choice.
 20. **Navigation is five local view-state buttons in `App.tsx`**, not a router
     library. The app has five fixed screens in a fixed order; `react-router` would be
     a runtime dependency for something five `useState` branches already do.
+21. *(Not used: the number was skipped when this list was first written; later entries keep
+    their numbers so references to them stay valid.)*
 22. **No diffing/markdown-editor dependency for the wizard's word-level highlight.**
     `web/src/lib/diff.ts` is a small from-scratch LCS word diff — the only thing it
     needs to do is highlight changed words between two short paragraphs.
@@ -113,7 +115,8 @@ build plan needed a concrete choice.
     (`GET /wallet/credential-status`), not inferred from a failed wallet call. Mock
     mode always reports a usable mock wallet, so the card needs its own signal to stay
     hidden in mock mode while still showing up on a genuine first run with no key.
-30. **`publik-app-token.txt` ships with a placeholder value**, not a real `pat_` token
+30. ~~**`publik-app-token.txt` ships with a placeholder value**~~ **Superseded:** the real public
+    `pat_` token for the live listing is committed now. Originally: a placeholder, not a real `pat_` token
     — there is no real publik account to mint one from in this build. README says so
     explicitly rather than silently shipping something that looks real but isn't.
 
@@ -129,7 +132,7 @@ build plan needed a concrete choice.
     mainly so JS code can invoke shell commands via IPC — this app never does that
     (the spawn happens once, in Rust, in `setup()`), so the extra dependency and
     its permission/capability surface bought nothing.
-33. **The installer still requires Node.js on the end user's machine.** `server/scripts/
+33. ~~**The installer still requires Node.js on the end user's machine.**~~ **Superseded by #53.** `server/scripts/
     bundle-desktop.mjs` produces a single ESM bundle (`esbuild`, one native external:
     `better-sqlite3`, copied alongside with its own `node_modules`) that Tauri's Rust
     shell spawns via a plain `node` on PATH. A fully standalone installer would bundle
@@ -150,7 +153,7 @@ build plan needed a concrete choice.
     misreads the `\\?\` prefix as something UNC-shaped and truncates to the drive
     letter). Found by actually running the built installer's `.exe`, not by reading
     the Tauri docs — worth remembering if `resource_dir()` shows up anywhere else.
-36. **App icon is a generated placeholder** (`src-tauri/icons/icon-source.png`, a plain
+36. ~~**App icon is a generated placeholder**~~ **Superseded by #63.** (`src-tauri/icons/icon-source.png`, a plain
     two-tone chevron, run through `npm run desktop:icon`), not real brand art. Swap the
     source PNG and rerun that script before shipping a real release.
 37. **`bundle.targets` is `"all"`**, not an explicit list — it was `["nsis", "msi"]`
@@ -176,7 +179,8 @@ build plan needed a concrete choice.
     selected at `require()` time by the *running* process's platform/arch, not by
     whatever machine ran `npm install`. One bundle is therefore already portable
     everywhere; building it three times would just be slower for no benefit.
-41. **`tauri.conf.json`'s `build.frontendDist` points at a static placeholder**
+41. ~~**`tauri.conf.json`'s `build.frontendDist` points at a static placeholder**~~ **Superseded by #57**,
+    which turns that directory into a real startup page.
     (`src-tauri/dummy-dist/index.html`), not `../web/dist`. This app never loads
     Tauri's own bundled frontend — `main.rs` always opens a window pointed at the
     locally-running Express server's URL once it's healthy — but the Tauri CLI still
@@ -184,7 +188,8 @@ build plan needed a concrete choice.
     at all. Pointing it at `../web/dist` would force every platform's CI job to
     rebuild the web frontend before `tauri build`, for a directory that is never
     actually read; the placeholder removes that ordering dependency entirely.
-42. **Shipping unsigned on macOS for now** (no notarization, no Developer ID). Users
+42. **Not notarized on macOS for now** (no Developer ID). Ad-hoc signed since #55, which changes
+    the first-launch warning described here. Users
     hit Gatekeeper's "app is damaged" warning until they right-click → Open once or
     run `xattr -cr`. Signing requires a paid Apple Developer account and credentials
     as CI secrets — a deliberate deferral, not an oversight; see README's macOS section.
@@ -223,3 +228,89 @@ build plan needed a concrete choice.
     three cases never collide as substrings of each other. `SPEC.md` is untouched — it's
     the user's own original document and "Voicebox (working name)" is accurate history,
     not a bug to fix.
+
+## Standalone installers, editor structure and learning (0.1.2)
+
+46. **Exports render from the editor's document, built once from the draft's structure.** Exports
+    used to read the raw rewrite (the `paragraphs` rows) and the editor rebuilt itself from them on
+    every open, so editor changes never reached an export and were discarded on reopen. Now
+    `documents.editor_json` is the single source of truth: composed the first time it's needed from
+    the draft's structure plus the wizard's results (`server/src/document/structure.ts`), saved, and
+    rendered by every format through one block model (`server/src/export/model.ts`).
+47. **Draft headings and Markdown footnotes are structural.** Only paragraphs go through pass 1/2.
+    Footnote references (`[^label]`) are protected like facts; definitions (`[^label]: text`) are
+    taken out of the body, running on until a blank line as in GitHub-flavoured Markdown; an
+    undefined reference stays as literal text. Heading levels are kept as written, and the document
+    title uses Word's Title style instead of Heading 1 so a draft's own `#` heading keeps its level.
+48. **A wizard decision made after the editor exists is carried into it**, unless the editor's text
+    for that paragraph no longer matches what the wizard last produced: then the user has edited it
+    by hand there, and the editor wins. Paragraphs are matched by a `paragraphId` attribute.
+49. **Typing in a paragraph marks it hand-edited**; loading or restoring a document doesn't (both
+    replace content with update events off, which the provenance plugin skips). A new paragraph
+    defaults to hand-edited and never inherits the `paragraphId` of the one it was split from.
+50. **Versions are saved at every wizard exit, every export, and on demand; an identical consecutive
+    version is skipped; restoring first saves what it replaces**, so a restore can be undone.
+    Exports are GET downloads, so their snapshot is a side effect of that GET, by design (Stage 6).
+51. **Learning from decisions.** Allowed words come from a revert whose original had an avoid-list
+    word the rewrite had removed. Favourites are 2-4 word phrases, never crossing punctuation and
+    containing at least one non-glue word, added in three separate edits; the longest are kept,
+    without repeating one inside a longer favourite. The fingerprint's 150 "function words" are
+    really the most common words ("thing", "work" included), too broad to filter phrases with, so
+    learning has its own short glue-word list. The style card refresh runs when the wizard finishes
+    with at least 20 decisions since the last one, not on the twentieth click, so a slow publik call
+    never stalls a review card; a failed refresh is reported and tried again next time, and never
+    blocks the editor. Rebuilding a card from scratch restarts the count but keeps the learned words
+    and phrases in its appendix.
+52. **`profiles.learned_json` is added by an idempotent migration** (`migrate()` in
+    `server/src/db/schema.ts`), since `CREATE TABLE IF NOT EXISTS` never alters a table that exists.
+53. **The desktop app ships its own Node.js runtime.** The official Node.js 24.20.0 build, the version
+    the tests run on, is a Tauri `externalBin` sidecar, downloaded at build time and checked against
+    nodejs.org's SHASUMS256 (`scripts/fetch-node.mjs`) rather than committed (about 90 MB). For the
+    universal macOS build the arm64 and x64 runtimes are joined with `lipo`, and each
+    single-architecture binary is kept too: Tauri compiles the app once per architecture first, and
+    each of those builds checks for its own sidecar.
+54. **Node 24, so macOS 13.5 is the minimum.** Node 22 would reach macOS 11, but its support ends in
+    April 2027, which would only defer the same floor. `bundle.macOS.minimumSystemVersion` matches
+    Node's own floor, so an older Mac gets the system's "requires macOS 13.5" message instead of a
+    silent failure.
+55. **macOS builds are ad-hoc signed, with the hardened runtime off.** A downloaded arm64 app with no
+    signature is reported "damaged" with no way to open it from Finder; an ad-hoc signature turns
+    that into the "can't check it" warning that Privacy & Security's Open Anyway clears. The
+    hardened runtime only matters for notarization, and would need JIT entitlements for Node.js.
+56. **The desktop server listens on 127.0.0.1, proves its identity, and stops with the app.** It
+    used to listen on every interface (anyone on the same network could read the corpus or spend
+    the user's publik balance) and kept running after the window closed, holding the port and, on
+    Windows, locking installed files against an upgrade. Now `STYLEPRINT_HOST` is 127.0.0.1;
+    `/health` echoes a per-launch `STYLEPRINT_INSTANCE` token so the shell never mistakes another
+    process on the port for its server; the shell stops the server on exit, and the server also
+    exits when its stdin closes, which covers a force-quit. The usual port (47821) keeps the UI's
+    origin, and with it its saved settings, stable between launches; any free port is used if it's
+    taken.
+57. **The window opens on a startup page** (`src-tauri/startup-page/`), switches to the app when the
+    server answers, and otherwise shows the reason, the server's last log lines and platform help.
+    A failed start used to show no window at all. On Windows the server runs without a console window.
+58. **PDF text extraction loads on first use, with a pure-JS DOMMatrix and the pdfjs worker bundled
+    in.** pdf-parse's renderer builds a `DOMMatrix` at load time, borrowed in Node from the native
+    `@napi-rs/canvas`, and its parser loads a `pdf.worker.mjs` from beside its own module. The
+    single-file bundle had neither, so every installed 0.1.x copy crashed at startup; checks run from
+    inside the repo passed because both resolved from the repo's `node_modules`. `@thednp/dommatrix`
+    stands in (extracting text never draws), importing the worker registers it on
+    `globalThis.pdfjsWorker`, and loading lazily means the PDF stack can only fail a PDF upload.
+59. **Every installer is installed and checked on a clean runner before a release.** The release
+    workflow installs the MSI, the NSIS installer and the `.dmg` (each installer's location read from
+    the registry; the MSI goes first because it reuses an existing NSIS install's folder), runs the
+    app's `STYLEPRINT_SMOKE_TEST` mode with no system Node.js on PATH (on macOS for both
+    architectures, the Intel half under Rosetta), and runs the end-to-end flow against the installed
+    server (`scripts/e2e-installed.mjs`). Any failure stops the release.
+60. **The desktop app handles downloads itself, and export clicks ask for a generic file type.**
+    Without a download handler macOS WebKit never downloads anything; with one, it still shows
+    anything it can display (a PDF, text) in place of the app. Clicks add `download=1`, the server
+    answers `application/octet-stream`, and the handler saves to Downloads (numbering rather than
+    overwriting) and tells the page where.
+61. **PDF export substitutes characters the standard PDF fonts can't encode** (arrows become ASCII,
+    anything else "?") rather than failing the export.
+62. **One script sets and checks the version** (`scripts/set-version.mjs`, ten places), and the
+    release workflow refuses a tag that doesn't match; 0.1.1 shipped reporting 0.1.0.
+63. **The app icon is a fingerprint of pen-stroke ridges on a terracotta tile**, drawn as SVG
+    (`src-tauri/icons/icon-source.svg`), the same accent as the startup page; it is also the web
+    favicon.

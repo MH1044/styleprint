@@ -62,23 +62,36 @@ Each server module has a dedicated `npm run test:<name>` script (see root
 `package.json`) and a Vitest file under `server/tests/`. `npm run check` runs every
 gate in sequence — run it before considering a change done. The frontend has one
 Playwright smoke test (`web/e2e/smoke.spec.ts`) that walks the full user journey in
-mock mode; update it when a screen's `data-testid` attributes change.
+mock mode; update it when a screen's `data-testid` attributes change. Setting
+`STYLEPRINT_E2E_URL` runs it against an already-running server instead of the dev
+servers, which is how installed copies are checked.
 
 ## Desktop build (src-tauri/)
 
 `npm run desktop:build` bundles the server (`server/scripts/bundle-desktop.mjs`,
-esbuild → single ESM file) and runs `tauri build` to produce Windows installers. The
-Rust shell (`src-tauri/src/main.rs`) does not reimplement any app logic — it spawns
-the bundled server and points a window at it. If you change how `server/src` resolves
-its own file locations (prompts/, the web build, the app token — all computed from
-`import.meta.url`), re-run `npm run bundle:desktop -w server` and smoke-test the
-`.exe` directly before assuming it still works; a green `tsc`/`vitest` run does not
-exercise the bundled/packaged code path. See `DECISIONS.md` #31-37.
+esbuild → single ESM file), fetches the pinned Node.js runtime the app ships as a
+Tauri sidecar (`scripts/fetch-node.mjs`, checksum-verified; a universal binary plus
+both single-architecture ones for macOS), and runs `tauri build`. The Rust shell
+(`src-tauri/src/main.rs`) does not reimplement any app logic: it starts the bundled
+server on the bundled runtime (127.0.0.1 only, stopped when the app exits), shows
+`src-tauri/startup-page/` until it answers, then points the window at it.
+
+Always check a packaged build from **outside** the repo. Run from inside it, Node
+resolves any package the bundle forgot from the repo's own `node_modules`, which is
+how an installer that crashed on every user's machine once passed a local check (see
+DECISIONS.md). The installed-copy checks don't have that blind spot:
+`STYLEPRINT_SMOKE_TEST=1 "<installed binary>"` and
+`node scripts/e2e-installed.mjs <bundled node> <server/index.mjs>`. The release
+workflow runs both against every installer, with no system Node.js on PATH, before
+anything is published.
 
 macOS builds happen only in CI (`.github/workflows/desktop-release.yml`, triggered by
-a `v*.*.*` tag or manual dispatch) — there's no Mac in this project's local build
+a `v*.*.*` tag or manual dispatch); there's no Mac in this project's local build
 environment, so changes to `src-tauri/` that might affect macOS need verification via
 that workflow's logs, not just a local Windows build.
+
+Versions: `node scripts/set-version.mjs <version>` sets every recorded version at once;
+the release workflow refuses a tag that doesn't match.
 
 ## Data and privacy
 

@@ -222,7 +222,7 @@ voicebox/
   sidecar-lora/            optional Python trainer
   publik-app-token.txt     public pat_ token, committed on purpose
   AGENTS.md                publik block + repo conventions for coding agents
-  prompts/                 same as src/prompts, symlinked, so agents find them
+  prompts/                 same as src/prompts, symlinked, so tools find them at the root
 ```
 
 **Data model (SQLite)**
@@ -379,11 +379,11 @@ Four milestones; each one is a usable app on its own and a listing update on pub
 
 **Open questions**
 
-- [ ] Name. “Voicebox” is a placeholder; check publik and npm for collisions.
-- [ ] AGPL vs MIT. AGPL protects against hosted forks; MIT gets more contributors. Decide before the first public commit.
+- [x] Name. “Voicebox” is a placeholder; check publik and npm for collisions. **Styleprint**: “voicebox” was taken on publik; “styleprint” was free on both (DECISIONS.md #45).
+- [x] AGPL vs MIT. AGPL protects against hosted forks; MIT gets more contributors. Decide before the first public commit. **AGPL-3.0-only.**
 - [ ] Does publik's `/embeddings` tier expose an embedding model name, and what dimension? Confirm from `GET /models` before locking the vec column size.
 - [ ] Which `publik-smart` cases justify 1.8× the cost of balanced? Run a 20-document blind comparison in M1 and keep the toggle only if reviewers prefer smart.
-- [ ] Windows PDF path: WebView2 print-to-PDF is fine on recent Windows; test on Windows 10 LTSC or fall back to `pdf-lib`.
+- [x] Windows PDF path: WebView2 print-to-PDF is fine on recent Windows; test on Windows 10 LTSC or fall back to `pdf-lib`. **`pdf-lib` on every platform**: the server renders the PDF itself, so no WebView's print support is involved.
 - [ ] Should the style card be editable mid-run, or only between runs? Leaning only between runs, to keep paragraph results comparable.
 - [ ] Non-English corpora: Layer 1's function-word list is English-only; parameterise by language in M4.
 
